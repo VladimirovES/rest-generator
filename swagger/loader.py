@@ -1,6 +1,9 @@
 import json
 from typing import Dict, Any
 
+from utils.shell import run_command
+
+
 class SwaggerLoader:
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -17,3 +20,7 @@ class SwaggerLoader:
         info = self.swagger.get("info", {})
         title = info.get("title", "default")
         return title.strip().lower().replace(' ', '_')
+
+    def download_swagger(self, url: str = 'https://lahta.uat.simple-solution.liis.su/checkpoint/openapi.json'):
+        swagger_cmd = f"curl {url} -o ./swagger.json"
+        run_command(swagger_cmd)

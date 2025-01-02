@@ -5,6 +5,7 @@ from http import HTTPStatus
 from codegen.data_models import Endpoint, Parameter
 from utils.common import remove_underscores
 
+
 class SwaggerProcessor:
     def __init__(self, swagger: Dict[str, Any]):
         self.swagger = swagger

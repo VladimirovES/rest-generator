@@ -4,7 +4,6 @@ from jinja2 import Environment, FileSystemLoader
 from codegen.data_models import Endpoint, SubPath
 from utils.common import class_name_from_tag
 
-
 class ClientGenerator:
     def __init__(self,
                  endpoints: List[Endpoint],
@@ -18,7 +17,7 @@ class ClientGenerator:
         self.env = Environment(loader=FileSystemLoader('.'), trim_blocks=True, lstrip_blocks=True)
         self.template = self.env.get_template(self.template_path)
 
-    def generate_clients(self, output_dir: str) -> Dict[str, str]:
+    def generate_clients(self, output_dir: str, module:str) -> Dict[str, str]:
         """
         Проходит по всем эндпоинтам, группирует по тегам, рендерит файлы.
         Возвращает { filename: className } для фасада.
@@ -37,7 +36,9 @@ class ClientGenerator:
                 base_path=base_path,
                 sub_paths=sub_paths,
                 methods=eps,
-                imports=self.imports
+                imports=self.imports,
+                models_import_path=f"http_clients.{module}.models"
+
             )
 
             filename = f"{class_name.lower()}_client.py"
