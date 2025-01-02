@@ -12,7 +12,8 @@ def main():
     loader = SwaggerLoader(swagger_path)
 
     # 1. Скачиваем swagger
-    loader.download_swagger(url='https://lahta.uat.simple-solution.liis.su/checkpoint/openapi.json')
+    # loader.download_swagger(url='https://lahta.uat.simple-solution.liis.su/cde/openapi.json')
+    loader.download_swagger(url='https://petstore.swagger.io/v2/swagger.json')
     loader.load()
     swagger_dict = loader.get_swagger_dict()
     service_name = loader.get_service_name()  # "checkpoint"
