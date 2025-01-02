@@ -42,7 +42,7 @@ class Endpoint:
 
     @property
     def sanitized_path(self) -> str:
-        """Возвращает путь, гарантируя, что он начинается с '/'. """
+        """Возвращает путь, гарантируя, что он всегда начинается с '/'. """
         return self.path if self.path.startswith('/') else f'/{self.path}'
 
     @property
@@ -73,6 +73,65 @@ def load_swagger(file_path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
+def get_service_name(swagger: Dict[str, Any]) -> str:
+    """
+    Извлекает название сервиса из swagger["info"]["title"].
+    Если нет, возвращает 'default'.
+    """
+    info = swagger.get("info", {})
+    title = info.get("title", "default")
+    return title.strip().lower().replace(' ', '_')  # на случай пробелов в названии
+
+
+def generate_facade_class(
+        file_to_class: Dict[str, str],  # <-- вместо вычислений берем готовые данные
+        output_dir: str,
+        facade_class_name: str = "CdeApi",
+        template_path: str = "facade_template.j2",
+        file_name='cde_api.py'
+) -> None:
+    """
+    Создаёт единый фасадный класс, который импортирует все *_client.py классы
+    и собирает их в одном месте. Запишет в 'cde_api.py' (по умолчанию).
+
+    file_to_class: маппинг {filename: className} от generate_clients.
+    """
+    # 1. Собираем файлы *_client.py
+    #    Но теперь нам не надо искать класс: у нас уже есть file_to_class
+    client_files = sorted(fname for fname in file_to_class if fname.endswith("_client.py"))
+
+    imports_data = []
+    for fname in client_files:
+        module_name = fname[:-3]  # e.g. "accesspasses_client"
+        class_name = file_to_class[fname]  # e.g. "AccessPasses"
+        # Пусть attribute_name = class_name.lower() или ...
+        # или можно base = module_name.replace("_client", ""), а затем ...
+        attribute_name = class_name.lower()  # "accesspasses"
+        # Если хотите snake_case: "approval_process_templates"
+        # тогда придется "reverse-engineer" .splitCamelCase -> snake
+
+        imports_data.append({
+            "module_name": module_name,
+            "class_name": class_name,
+            "attribute_name": attribute_name,
+        })
+
+    env = Environment(loader=FileSystemLoader('.'), trim_blocks=True, lstrip_blocks=True)
+    template = env.get_template(template_path)
+
+    rendered = template.render(
+        facade_class_name=facade_class_name,
+        imports=imports_data,
+        docstring_indent="    "
+    )
+
+    facade_file_path = os.path.join(output_dir, file_name)
+    with open(facade_file_path, "w", encoding="utf-8") as f:
+        f.write(rendered)
+
+    print(f"[OK] Facade class {facade_class_name} сгенерирован в {facade_file_path}")
+
+
 def get_http_status_enum(status_code: str) -> str:
     """Маппит статус-код в enum HTTPStatus (если возможно)."""
     try:
@@ -92,9 +151,11 @@ def remove_underscores(name: str) -> str:
         seg = seg.strip()
         if not seg:
             continue
+        # Если сегмент уже похож на CamelCase, оставим как есть:
         if re.match(r'^[A-Z][a-zA-Z0-9]*$', seg):
             cleaned_segments.append(seg)
         else:
+            # Иначе просто делаем .capitalize()
             cleaned_segments.append(seg.capitalize())
     return ''.join(cleaned_segments)
 
@@ -252,7 +313,7 @@ def class_name_from_tag(tag: str) -> str:
 
 def determine_base_path(endpoints: List[Endpoint]) -> str:
     """
-    Вычисляет общий базовый путь для эндпоинтов (если он есть).
+    Вычисляет общий базовый путь для эндпоинтчов (если он есть).
     """
     paths = [ep.path for ep in endpoints]
     if not paths:
@@ -300,11 +361,14 @@ def group_endpoints_by_tag(endpoints: List[Endpoint]) -> Dict[str, List[Endpoint
 # Client generation
 # =======================
 
+
 def generate_clients(swagger: Dict[str, Any],
                      template_path: str = 'client_template.j2',
-                     output_dir: str = 'generated_clients') -> None:
+                     output_dir: str = 'generated_clients'
+                    ) -> Dict[str, str]:
     """
     Генерирует Python-клиенты на основе swagger-спецификации и Jinja2-шаблона.
+    Возвращает словарь: { 'approvalprocesstemplates_client.py': 'ApprovalProcessTemplates', ... }
     """
     endpoints = extract_endpoints(swagger)
     imports = extract_imports(swagger)
@@ -314,6 +378,9 @@ def generate_clients(swagger: Dict[str, Any],
     template = env.get_template(template_path)
 
     os.makedirs(output_dir, exist_ok=True)
+
+    # Тут храним маппинг файл -> класс
+    file_to_class = {}
 
     for tag, eps in grouped_by_tag.items():
         class_name = class_name_from_tag(tag)
@@ -334,6 +401,7 @@ def generate_clients(swagger: Dict[str, Any],
                 if sub_path_name not in [sp.name for sp in sub_paths]:
                     sub_paths.append(SubPath(name=sub_path_name, path=path_suffix))
 
+        # Рендер
         rendered = template.render(
             class_name=class_name,
             base_path=base_path,
@@ -342,10 +410,18 @@ def generate_clients(swagger: Dict[str, Any],
             imports=imports
         )
 
+        # Файл
         output_file = f"{class_name.lower()}_client.py"
-        with open(os.path.join(output_dir, output_file), 'w', encoding='utf-8') as f:
+        file_path = os.path.join(output_dir, output_file)
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(rendered)
-        print(f"Сгенерирован клиент: {output_file}")
+        print(f"[OK] Сгенерирован клиент: {output_file}")
+
+        # Сохраняем, что именно в этом файле лежит класс class_name
+        file_to_class[output_file] = class_name
+
+    return file_to_class
+
 
 
 # =======================
@@ -375,7 +451,8 @@ def generate_models(swagger_path: str) -> None:
     """
     Генерация Pydantic-моделей при помощи `datamodel-codegen`.
     """
-    swagger_cmd = "curl https://lahta.uat.simple-solution.liis.su/cde/openapi.json -o ./swagger.json"
+    swagger_cmd = "curl https://lahta.uat.simple-solution.liis.su/checkpoint/openapi.json -o ./swagger.json"
+    # swagger_cmd = "curl https://lahta.uat.simple-solution.liis.su/cde/openapi.json -o ./swagger.json"
     model_cmd = (
         "datamodel-codegen "
         f"--input {swagger_path} "
@@ -482,26 +559,36 @@ def fix_models_inheritance(models_file_path: str) -> None:
     print(f"[INFO] Fixed inheritance in {models_file_path}")
 
 
-def main() -> None:
-    """
-    Точка входа: генерируем модели, генерируем клиенты, приводим код в порядок (autoflake, black).
-    """
+def main():
     swagger_path = 'swagger.json'
-    output_clients_dir = '/Users/stallex/PycharmProjects/auto_generate_client/generated_clients'
-    template_path = 'client_template.j2'
-
-    # 1. Генерация Pydantic-моделей
-    generate_models(swagger_path)
-
-    # 2. Фиксим наследование BaseModel->BaseConfigModel
-    fix_models_inheritance(models_file_path='/Users/stallex/PycharmProjects/auto_generate_client/models.py')
-
-    # 2. Генерация клиентских классов
     swagger_spec = load_swagger(swagger_path)
-    generate_clients(swagger_spec, template_path=template_path, output_dir=output_clients_dir)
+    service_name = get_service_name(swagger_spec)
 
-    # 3. Запуск auto-formatting (autoflake + black)
-    post_process_generated_code(output_clients_dir)
+    base_output_dir = 'http_clients'
+    service_dir = os.path.join(base_output_dir, service_name)
+
+    generate_models(swagger_path)
+    fix_models_inheritance('models.py')
+
+    # >>> ВАЖНО: Получаем mapping
+    file_to_class = generate_clients(
+        swagger_spec,
+        template_path='templates/client_template.j2',
+        output_dir=service_dir
+    )
+
+    post_process_generated_code(service_dir)
+
+    # >>> Передаём mapping
+    generate_facade_class(
+        file_to_class=file_to_class,
+        output_dir=service_dir,
+        file_name=f'{service_name}_facade.py',        # e.g. "checkpoint_facade.py"
+        facade_class_name=f"{service_name.capitalize()}Api",
+        template_path="templates/facade_template.j2"
+    )
+
+    print(f"[DONE] Клиенты и фасад для сервиса '{service_name}' готовы: {service_dir}")
 
 
 if __name__ == "__main__":
