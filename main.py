@@ -1,53 +1,99 @@
 import os
+
+from dotenv import load_dotenv
+
+from codegen.generate_app_facade import generate_app_facade
 from swagger.loader import SwaggerLoader
 from swagger.processor import SwaggerProcessor
 from codegen.client_generator import ClientGenerator
 from codegen.facade_generator import FacadeGenerator
-from codegen.data_models import Endpoint
 from model_generator import ModelGenerator
+from utils.logger import logger
+load_dotenv()
+
 
 def main():
     swagger_path = 'swagger.json'
     loader = SwaggerLoader(swagger_path)
+
+    # 1. Fetch SWAGGER_URL from .env or environment variables
+    swagger_url = os.getenv("SWAGGER_URL")
+    if not swagger_url:
+        logger.warning(
+            "Environment variable SWAGGER_URL is not set. Please configure it in .env or in your environment.")
+    else:
+        logger.info(f"Will download Swagger from: {swagger_url}")
+
+    # 2. Download swagger.json
+    logger.info("Downloading Swagger file...")
+    loader.download_swagger(url=swagger_url)
+    logger.info("Swagger file downloaded. Now parsing the local swagger.json...")
     loader.load()
-    swagger_dict = loader.get_swagger_dict()
+    swagger_dict = loader.swagger
     service_name = loader.get_service_name()
+    logger.info(f"Service identified as: {service_name}")
 
-    # Генерация Pydantic-моделей
-    model_gen = ModelGenerator(swagger_path, 'models.py')
-    model_gen.generate_models()
-    model_gen.fix_models_inheritance()
-
-    # Директория для генерации
+    # 3. Create output directories
     base_output_dir = 'http_clients'
     service_dir = os.path.join(base_output_dir, service_name)
+    endpoints_dir = os.path.join(service_dir, "endpoints")
     os.makedirs(service_dir, exist_ok=True)
+    os.makedirs(endpoints_dir, exist_ok=True)
+    logger.info(f"Created directories for service: '{service_dir}' and '{endpoints_dir}'")
 
-    # Парсинг Swagger
+    # 4. Generate models -> http_clients/<service_name>/models.py
+    models_file = os.path.join(service_dir, "models")
+    model_gen = ModelGenerator(swagger_path, models_file)
+    logger.info("Generating Pydantic models (via datamodel-codegen)...")
+    model_gen.generate_models()
+    logger.info("Models generated. Fixing BaseModel->BaseConfigModel inheritance...")
+    model_gen.fix_models_inheritance()
+    logger.info("Model inheritance fixed. Ready for further processing.")
+
+    # 5. Parse the Swagger to extract endpoints and imports
+    logger.info("Extracting endpoints and imports from swagger.")
     processor = SwaggerProcessor(swagger_dict)
-    endpoints = processor.extract_endpoints()  # List[Endpoint]
-    imports = processor.extract_imports()      # List[str]
+    endpoints = processor.extract_endpoints()
+    imports = processor.extract_imports()
+    logger.info(f"Found {len(endpoints)} endpoints and {len(imports)} imports.")
 
-    # Генерация клиентов
+    # 6. Generate client classes -> http_clients/<service_name>/endpoints/*.py
+    logger.info("Generating client classes (by swagger tags)...")
     client_gen = ClientGenerator(
         endpoints=endpoints,
         imports=imports,
         template_path='templates/client_template.j2'
     )
-    file_to_class = client_gen.generate_clients(service_dir)
+    file_to_class = client_gen.generate_clients(endpoints_dir, service_name)
+    logger.info(f"Generated {len(file_to_class)} client files.")
 
-    # Автоформат
+    # 7. Auto-format (autoflake, black)
+    logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
     model_gen.post_process_code(service_dir)
+    logger.info("Auto-format completed.")
 
-    # Генерация фасада
+    # 8. Generate local facade -> http_clients/<service_name>/facade.py
     facade_gen = FacadeGenerator(
         facade_class_name=f"{service_name.capitalize()}Api",
         template_path='templates/facade_template.j2'
     )
-    facade_filename = f"{service_name}_facade.py"
+    facade_filename = "facade.py"
+    logger.info("Generating local facade for the service.")
     facade_gen.generate_facade(file_to_class, service_dir, facade_filename)
+    logger.info("Local facade generated successfully.")
 
-    print(f"\n[DONE] Клиенты и фасад для сервиса '{service_name}' готовы: {service_dir}")
+    # 9. Generate global facade (app_facade) -> http_clients/api_facade.py
+    logger.info("Generating global (app) facade...")
+    generate_app_facade(
+        template_path="templates/app_facade.j2",
+        output_path="http_clients/api_facade.py",
+        base_dir="http_clients"
+    )
+    logger.info("Global facade (api_facade.py) generated successfully.")
+
+    logger.info(
+        f"Clients (endpoints/*.py), models, and facade for service '{service_name}' have been created at '{service_dir}'.")
+
 
 if __name__ == "__main__":
     main()
