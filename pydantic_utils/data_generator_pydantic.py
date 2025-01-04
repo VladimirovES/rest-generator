@@ -1,10 +1,7 @@
 import random
 from datetime import datetime, date, timedelta
 from enum import Enum
-from typing import (
-    Any, List, Dict, Union, Set,
-    get_args, get_origin, ForwardRef
-)
+from typing import Any, List, Dict, Union, Set, get_args, get_origin, ForwardRef
 
 from faker import Faker
 from uuid import UUID, uuid4
@@ -17,9 +14,7 @@ fake = Faker()
 class RandomValueGenerator:
     @staticmethod
     def random_value(
-            field_type: Any,
-            current_depth: int = 0,
-            max_depth: int = 3
+        field_type: Any, current_depth: int = 0, max_depth: int = 3
     ) -> Any:
         """
         Генерирует случайное значение для заданного field_type.
@@ -32,7 +27,9 @@ class RandomValueGenerator:
         if origin is Union and type(None) in args:
             for arg in args:
                 if arg is not type(None):
-                    return RandomValueGenerator.random_value(arg, current_depth, max_depth)
+                    return RandomValueGenerator.random_value(
+                        arg, current_depth, max_depth
+                    )
 
         # 2) Union[...] (без None)
         if origin is Union:
@@ -41,11 +38,13 @@ class RandomValueGenerator:
 
         # 3) Any
         if field_type is Any:
-            return random.choice([
-                fake.word(),
-                random.randint(1, 1000),
-                random.uniform(1.0, 100.0),
-            ])
+            return random.choice(
+                [
+                    fake.word(),
+                    random.randint(1, 1000),
+                    random.uniform(1.0, 100.0),
+                ]
+            )
 
         # 4) Примитивные типы
         if field_type is str:
@@ -59,7 +58,7 @@ class RandomValueGenerator:
 
         # 5) datetime / date
         if field_type is datetime:
-            return (datetime.now() + timedelta(days=1)).isoformat() + 'Z'
+            return (datetime.now() + timedelta(days=1)).isoformat() + "Z"
         if field_type is date:
             return (datetime.now() + timedelta(days=1)).date().isoformat()
 
@@ -80,7 +79,9 @@ class RandomValueGenerator:
             if current_depth >= max_depth:
                 return {}
             return {
-                fake.word(): RandomValueGenerator.random_value(args[1], current_depth + 1, max_depth)
+                fake.word(): RandomValueGenerator.random_value(
+                    args[1], current_depth + 1, max_depth
+                )
                 for _ in range(random.randint(1, 2))
             }
 
@@ -113,26 +114,17 @@ class RandomValueGenerator:
 
 class GenerateData:
     def __init__(
-            self,
-            model_class,
-            current_depth: int = 0,
-            max_depth: int = 3,
+        self,
+        model_class,
+        current_depth: int = 0,
+        max_depth: int = 3,
     ):
-        """
-        :param model_class: Класс Pydantic модели.
-        :param current_depth: Текущая глубина рекурсии (для вложенных моделей).
-        :param max_depth: Максимальная глубина рекурсии.
-        """
         self.model_class = model_class
         self.data = {}
         self.current_depth = current_depth
         self.max_depth = max_depth
 
-    def _fill_fields(
-            self,
-            required_only: bool = False,
-            optional_only: bool = False
-    ):
+    def _fill_fields(self, required_only: bool = False, optional_only: bool = False):
         """
         Внутренний метод заполнения полей.
         :param required_only: Если True, заполнять только обязательные (не Optional) поля.
@@ -150,7 +142,7 @@ class GenerateData:
             origin = get_origin(annotation)
             args = get_args(annotation)
             # Проверяем, является ли поле "Optional[...]"
-            is_union = (origin is Union)
+            is_union = origin is Union
             is_optional = is_union and (type(None) in args)
 
             # 1) Если нужно ТОЛЬКО обязательные, а поле опциональное -> пропускаем
@@ -169,9 +161,7 @@ class GenerateData:
 
             # Генерируем значение
             self.data[field_name] = RandomValueGenerator.random_value(
-                real_type,
-                current_depth=self.current_depth,
-                max_depth=self.max_depth
+                real_type, current_depth=self.current_depth, max_depth=self.max_depth
             )
 
     def fill_all_fields(self, **data):

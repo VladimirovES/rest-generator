@@ -10,20 +10,23 @@ def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, 
         if os.path.isdir(service_path):
             facade_file = os.path.join(service_path, "facade.py")
             if os.path.exists(facade_file):
-                api_class = ''.join(word.capitalize() for word in item.split('_')) + "Api"
-                services_info.append({
-                    "service_name": item,
-                    "api_class": api_class
-                })
+                api_class = (
+                    "".join(word.capitalize() for word in item.split("_")) + "Api"
+                )
+                services_info.append({"service_name": item, "api_class": api_class})
     return services_info
 
 
-def generate_app_facade(template_path: str,
-                        output_path: str = "api_facade.py",
-                        base_dir: str = "http_clients") -> None:
+def generate_app_facade(
+    template_path: str,
+    output_path: str = "api_facade.py",
+    base_dir: str = "http_clients",
+) -> None:
     services = find_services_with_facade(base_dir)
 
-    env = Environment(loader=FileSystemLoader('.'), trim_blocks=True, lstrip_blocks=True)
+    env = Environment(
+        loader=FileSystemLoader("."), trim_blocks=True, lstrip_blocks=True
+    )
     template = env.get_template(template_path)
 
     rendered = template.render(services=services)

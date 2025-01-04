@@ -1,13 +1,13 @@
 {% set docstring_indent = '    ' %}
 from http import HTTPStatus
 from typing import Any, Optional, List, Dict
-from api_client import ApiClientServices
+from http_clients.api_client import ApiClient
 from {{ models_import_path }} import {{ imports | join(', ') }}
 
 import allure
 
 
-class {{ class_name }}(ApiClientServices):
+class {{ class_name }}(ApiClient):
     {% for method in methods %}
 
     @allure.step("{{ method.description | replace('\n', '\n' + docstring_indent) }}")

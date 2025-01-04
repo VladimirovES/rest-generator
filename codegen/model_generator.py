@@ -5,13 +5,8 @@ from utils.shell import run_command
 
 class ModelGenerator:
     def __init__(self, swagger_path: str, models_file: str = 'models'):
-        """
-        :param swagger_path: Путь к файлу (JSON) со Swagger/OpenAPI
-        :param models_file: Путь (без .py) к файлу, куда будет сгенерирован код моделей.
-                           По умолчанию - 'models', итоговый файл будет 'models.py'.
-        """
         self.swagger_path = swagger_path
-        self.models_file = models_file  # без .py
+        self.models_file = models_file
 
     def generate_models(self) -> None:
         """
