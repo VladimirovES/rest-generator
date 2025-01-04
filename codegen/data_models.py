@@ -24,7 +24,7 @@ class Endpoint:
 
     @property
     def sanitized_path(self) -> str:
-        return self.path if self.path.startswith('/') else f'/{self.path}'
+        return self.path if self.path.startswith("/") else f"/{self.path}"
 
     @property
     def method_parameters(self) -> List[str]:

@@ -3,7 +3,6 @@ from typing import Dict, Any, List
 from http import HTTPStatus
 
 from codegen.data_models import Endpoint, Parameter
-from utils.common import remove_underscores
 
 
 class SwaggerProcessor:
@@ -48,9 +47,22 @@ class SwaggerProcessor:
     def extract_imports(self) -> List[str]:
         components = self.swagger.get('components', {})
         schemas = components.get('schemas', {})
-        return [remove_underscores(name) for name in schemas.keys()]
+        return [self._remove_underscores(name) for name in schemas.keys()]
 
     # -- private helpers --
+    @staticmethod
+    def _remove_underscores(name: str) -> str:
+        segments = name.split('_')
+        cleaned_segments = []
+        for seg in segments:
+            seg = seg.strip()
+            if not seg:
+                continue
+            if re.match(r'^[A-Z][a-zA-Z0-9]*$', seg):
+                cleaned_segments.append(seg)
+            else:
+                cleaned_segments.append(seg.capitalize())
+        return ''.join(cleaned_segments)
 
     def _extract_payload_type(self, request_body: Dict[str, Any]) -> str:
         if not request_body:
@@ -89,7 +101,7 @@ class SwaggerProcessor:
     def _map_openapi_type_to_python(self, schema: Dict[str, Any]) -> str:
         if '$ref' in schema:
             raw_name = schema['$ref'].split('/')[-1]
-            return remove_underscores(raw_name)
+            return self._remove_underscores(raw_name)
 
         openapi_type = schema.get('type', 'Any')
         if openapi_type == 'array':
