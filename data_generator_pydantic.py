@@ -7,8 +7,9 @@ from typing import (
 )
 
 from faker import Faker
-from pydantic import BaseModel
 from uuid import UUID, uuid4
+
+from pydantic_config import BaseConfigModel
 
 fake = Faker()
 
@@ -16,9 +17,9 @@ fake = Faker()
 class RandomValueGenerator:
     @staticmethod
     def random_value(
-        field_type: Any,
-        current_depth: int = 0,
-        max_depth: int = 3
+            field_type: Any,
+            current_depth: int = 0,
+            max_depth: int = 3
     ) -> Any:
         """
         Генерирует случайное значение для заданного field_type.
@@ -95,8 +96,8 @@ class RandomValueGenerator:
         if isinstance(field_type, type) and issubclass(field_type, Enum):
             return random.choice(list(field_type))
 
-        # 9) BaseModel
-        if isinstance(field_type, type) and issubclass(field_type, BaseModel):
+        # 9) BaseConfigModel
+        if isinstance(field_type, type) and issubclass(field_type, BaseConfigModel):
             if current_depth >= max_depth:
                 return None
             from_data = GenerateData(field_type, current_depth + 1, max_depth)
@@ -112,10 +113,10 @@ class RandomValueGenerator:
 
 class GenerateData:
     def __init__(
-        self,
-        model_class: Type[BaseModel],
-        current_depth: int = 0,
-        max_depth: int = 3,
+            self,
+            model_class,
+            current_depth: int = 0,
+            max_depth: int = 3,
     ):
         """
         :param model_class: Класс Pydantic модели.
@@ -128,9 +129,9 @@ class GenerateData:
         self.max_depth = max_depth
 
     def _fill_fields(
-        self,
-        required_only: bool = False,
-        optional_only: bool = False
+            self,
+            required_only: bool = False,
+            optional_only: bool = False
     ):
         """
         Внутренний метод заполнения полей.
@@ -212,15 +213,15 @@ class GenerateData:
 
     def to_dict(self):
         """
-        Рекурсивно приводит итоговый объект (BaseModel) к словарю.
+        Рекурсивно приводит итоговый объект (BaseConfigModel) к словарю.
         """
         return self._convert_to_dict(self.build())
 
-    def _convert_to_dict(self, instance: BaseModel):
-        if isinstance(instance, BaseModel):
+    def _convert_to_dict(self, instance: BaseConfigModel):
+        if isinstance(instance, BaseConfigModel):
             result = {}
             for k, v in instance.__dict__.items():
-                if isinstance(v, BaseModel):
+                if isinstance(v, BaseConfigModel):
                     result[k] = self._convert_to_dict(v)
                 elif isinstance(v, list):
                     result[k] = [self._convert_to_dict(i) for i in v]
@@ -230,4 +231,3 @@ class GenerateData:
                     result[k] = v
             return result
         return instance
-

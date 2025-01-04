@@ -4,12 +4,20 @@ from utils.shell import run_command
 
 
 class ModelGenerator:
-    def __init__(self, swagger_path: str,
-                 models_file: str = 'models'):
+    def __init__(self, swagger_path: str, models_file: str = 'models'):
+        """
+        :param swagger_path: Путь к файлу (JSON) со Swagger/OpenAPI
+        :param models_file: Путь (без .py) к файлу, куда будет сгенерирован код моделей.
+                           По умолчанию - 'models', итоговый файл будет 'models.py'.
+        """
         self.swagger_path = swagger_path
-        self.models_file = models_file
+        self.models_file = models_file  # без .py
 
     def generate_models(self) -> None:
+        """
+        Запускает datamodel-codegen, чтобы сгенерировать Pydantic-модели на основе Swagger.
+        Результат - файл {self.models_file}.py.
+        """
         model_cmd = (
             f"datamodel-codegen --input {self.swagger_path} "
             "--input-file-type openapi "
@@ -23,13 +31,73 @@ class ModelGenerator:
         run_command(model_cmd)
 
     def fix_models_inheritance(self) -> None:
-        if not os.path.exists(self.models_file):
-            print(f"[WARN] {self.models_file} not found, skip fix.")
+        """
+        Заменяет наследование BaseModel -> BaseConfigModel в итоговом файле моделей,
+        а также правит импорт, убирая 'BaseModel' из 'from pydantic import ...'
+        и добавляя при необходимости 'from pydantic_config import BaseConfigModel'.
+        """
+        models_path = self.models_file + ".py"
+        if not os.path.exists(models_path):
             return
-        ...
-        print(f"[INFO] Fixed inheritance in {self.models_file}")
+
+        with open(models_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        new_lines = []
+        found_pydantic_config_import = False
+
+        # Регулярка, ловящая слово BaseModel как отдельное
+        base_model_pattern = re.compile(r"\bBaseModel\b")
+
+        last_import_index = -1
+
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            # Если это строка импорта, запоминаем индекс для возможной вставки
+            if stripped.startswith("import ") or stripped.startswith("from "):
+                last_import_index = len(new_lines)
+
+            # Меняем "BaseModel" -> "BaseConfigModel"
+            line = base_model_pattern.sub("BaseConfigModel", line)
+
+            # Если это строка вида "from pydantic import ..."
+            if stripped.startswith("from pydantic import"):
+                prefix = "from pydantic import "
+                after_import = stripped[len(prefix):]
+                imports_list = [imp.strip() for imp in after_import.split(",")]
+                # Убираем "BaseModel" и "BaseConfigModel"
+                filtered_imports = [
+                    imp for imp in imports_list
+                    if imp not in ("BaseModel", "BaseConfigModel")
+                ]
+                if len(filtered_imports) == 0:
+                    # Если ничего не осталось импортировать — пропускаем эту строку
+                    continue
+                else:
+                    new_line = prefix + ", ".join(filtered_imports) + "\n"
+                    new_lines.append(new_line)
+            else:
+                # Проверяем, не появился ли уже "from pydantic_config import BaseConfigModel"
+                if "from pydantic_config import BaseConfigModel" in line:
+                    found_pydantic_config_import = True
+                new_lines.append(line)
+
+        # Если не встретили "from pydantic_config import BaseConfigModel", добавим
+        if not found_pydantic_config_import:
+            import_line = "from pydantic_config import BaseConfigModel\n"
+            if last_import_index >= 0:
+                new_lines.insert(last_import_index + 1, import_line)
+            else:
+                # Если вовсе нет импортов, добавим в начало
+                new_lines.insert(0, import_line)
+
+        with open(models_path, 'w', encoding='utf-8') as f:
+            f.writelines(new_lines)
 
     def post_process_code(self, output_dir: str) -> None:
+        """
+        Запускает autoflake и black для автоформатирования и удаления неиспользуемых импортов.
+        """
         autoflake_cmd = (
             "autoflake "
             "--remove-all-unused-imports "

@@ -34,4 +34,3 @@ class FacadeGenerator:
         facade_path = os.path.join(output_dir, file_name)
         with open(facade_path, "w", encoding="utf-8") as f:
             f.write(rendered)
-        print(f"[OK] Facade class {self.facade_class_name} сгенерирован в {facade_path}")

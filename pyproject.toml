@@ -2,7 +2,6 @@
 name = "my-codegen"
 version = "0.1.0"
 description = "My code generator experiment"
-authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

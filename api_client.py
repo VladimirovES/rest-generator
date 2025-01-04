@@ -31,7 +31,8 @@ class UUIDEncoder(json.JSONEncoder):
 
 
 class RequestHandler:
-    def __init__(self, base_url: str, auth_token: Optional[str] = None):
+    def __init__(self, base_url: str,
+                 auth_token: Optional[str] = None):
         self.base_url = base_url
         self.auth_token = auth_token
         self.session = requests.Session()
@@ -208,7 +209,7 @@ class ApiClient:
                path: str,
                headers: Optional[Dict] = None,
                params: Optional[Dict] = None,
-               payload: Optional[Dict] = None,
+               payload: Optional[Dict, List] = None,
                expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
                **kwargs) -> Union[Dict, List]:
         return self._send_request('DELETE', path,
