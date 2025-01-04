@@ -3,13 +3,13 @@ from datetime import datetime, date, timedelta
 from enum import Enum
 from typing import (
     Any, List, Dict, Union, Set,
-    get_args, get_origin, Type, ForwardRef
+    get_args, get_origin, ForwardRef
 )
 
 from faker import Faker
 from uuid import UUID, uuid4
 
-from pydantic_config import BaseConfigModel
+from pydantic_utils.pydantic_config import BaseConfigModel
 
 fake = Faker()
 

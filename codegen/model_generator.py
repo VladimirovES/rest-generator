@@ -34,7 +34,7 @@ class ModelGenerator:
         """
         Заменяет наследование BaseModel -> BaseConfigModel в итоговом файле моделей,
         а также правит импорт, убирая 'BaseModel' из 'from pydantic import ...'
-        и добавляя при необходимости 'from pydantic_config import BaseConfigModel'.
+        и добавляя при необходимости 'from http_clients.pydantic_config import BaseConfigModel'.
         """
         models_path = self.models_file + ".py"
         if not os.path.exists(models_path):
@@ -77,18 +77,15 @@ class ModelGenerator:
                     new_line = prefix + ", ".join(filtered_imports) + "\n"
                     new_lines.append(new_line)
             else:
-                # Проверяем, не появился ли уже "from pydantic_config import BaseConfigModel"
                 if "from pydantic_config import BaseConfigModel" in line:
                     found_pydantic_config_import = True
                 new_lines.append(line)
 
-        # Если не встретили "from pydantic_config import BaseConfigModel", добавим
         if not found_pydantic_config_import:
-            import_line = "from pydantic_config import BaseConfigModel\n"
+            import_line = "from pydantic_utils.pydantic_config import BaseConfigModel\n"
             if last_import_index >= 0:
                 new_lines.insert(last_import_index + 1, import_line)
             else:
-                # Если вовсе нет импортов, добавим в начало
                 new_lines.insert(0, import_line)
 
         with open(models_path, 'w', encoding='utf-8') as f:

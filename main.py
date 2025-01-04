@@ -7,7 +7,7 @@ from swagger.loader import SwaggerLoader
 from swagger.processor import SwaggerProcessor
 from codegen.client_generator import ClientGenerator
 from codegen.facade_generator import FacadeGenerator
-from model_generator import ModelGenerator
+from codegen.model_generator import ModelGenerator
 from utils.logger import logger
 load_dotenv()
 

@@ -1,13 +1,6 @@
-import logging
 import os
 from typing import List, Dict
 from jinja2 import Environment, FileSystemLoader
-
-from utils import logger
-
-
-# def to_camel_case(service_name: str) -> str:
-#     return ''.join(word.capitalize() for word in service_name.split('_')) + "Api"
 
 
 def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, str]]:
@@ -35,6 +28,5 @@ def generate_app_facade(template_path: str,
 
     rendered = template.render(services=services)
 
-    # 4. Пишем файл
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(rendered)
