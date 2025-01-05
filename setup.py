@@ -6,7 +6,8 @@ setuptools.setup(
     description="API client generator library",
     author="Vladimirov Evgeniy",
     url="https://github.com/vladimiroves/api-client-generator",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(where="src"),
+    package_dir={"": "src"},
     include_package_data=True,
     install_requires=[
         "allure-pytest==2.13.5",
