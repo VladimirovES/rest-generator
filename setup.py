@@ -6,7 +6,7 @@ setuptools.setup(
     description="API client generator library",
     author="Your Name",
     author_email="you@example.com",
-    url="https://github.com/<youruser>/api-client-generator",
+    url="https://github.com/vladimiroves/api-client-generator",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=[
