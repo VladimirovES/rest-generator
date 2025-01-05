@@ -50,7 +50,7 @@ setuptools.setup(
     ],
     entry_points={
       "console_scripts": [
-        "my-api-client=src.my_codegen.main:main",
+        "my-api-client=my_codegen.main:main",
       ],
     },
     python_requires=">=3.7",
