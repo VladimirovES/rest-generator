@@ -15,7 +15,7 @@ load_dotenv()
 
 def main():
     # 1. Fetch SWAGGER_URL from .env or environment variables
-    swagger_path = '../../swagger.json'
+    swagger_path = 'swagger.json'
     parser = argparse.ArgumentParser(description="API Client Generator")
     parser.add_argument(
         "--swagger-url",
