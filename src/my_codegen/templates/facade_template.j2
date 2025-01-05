@@ -1,0 +1,13 @@
+{% set docstring_indent = '    ' %}
+from typing import Optional
+
+{% for imp in imports %}
+from endpoints.{{ imp.module_name }} import {{ imp.class_name }}
+{% endfor %}
+
+
+class {{ facade_class_name }}:
+    def __init__(self, auth_token: Optional[str] = None):
+        {% for imp in imports %}
+        self.{{ imp.attribute_name }} = {{ imp.class_name }}(auth_token)
+        {% endfor %}
