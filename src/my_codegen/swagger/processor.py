@@ -2,7 +2,7 @@ import re
 from typing import Dict, Any, List
 from http import HTTPStatus
 
-from src.my_codegen.codegen.data_models import Endpoint, Parameter
+from my_codegen.codegen.data_models import Endpoint, Parameter
 
 
 class SwaggerProcessor:

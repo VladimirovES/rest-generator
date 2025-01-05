@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any
 
-from src.my_codegen.utils.shell import run_command
+from my_codegen.utils.shell import run_command
 
 
 class SwaggerLoader:
