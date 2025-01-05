@@ -1,6 +1,6 @@
 import os
 import re
-from src.my_codegen.utils.shell import run_command
+from my_codegen.utils.shell import run_command
 
 
 class ModelGenerator:

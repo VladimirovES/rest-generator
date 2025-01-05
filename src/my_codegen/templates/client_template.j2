@@ -1,8 +1,8 @@
 {% set docstring_indent = '    ' %}
 from http import HTTPStatus
 from typing import Any, Optional, List, Dict
-from src.my_codegen.http_clients.api_client import ApiClient
-from src.my_codegen.{{ models_import_path }} import {{ imports | join(', ') }}
+from my_codegen.http_clients.api_client import ApiClient
+from my_codegen.{{ models_import_path }} import {{ imports | join(', ') }}
 
 import allure
 
