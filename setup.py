@@ -1,11 +1,10 @@
 import setuptools
 
 setuptools.setup(
-    name="api-client-generator",
+    name="my-api-client",
     version="0.1.0",
     description="API client generator library",
-    author="Your Name",
-    author_email="you@example.com",
+    author="Vladimirov Evgeniy",
     url="https://github.com/vladimiroves/api-client-generator",
     packages=setuptools.find_packages(),
     include_package_data=True,
@@ -49,6 +48,11 @@ setuptools.setup(
         "typing_extensions==4.12.2",
         "urllib3==2.3.0",
     ],
+    entry_points={
+      "console_scripts": [
+        "my-api-client=src.my_codegen.main:main",  # Пример
+      ],
+    },
     python_requires=">=3.7",
     classifiers=[
         "Programming Language :: Python :: 3",
