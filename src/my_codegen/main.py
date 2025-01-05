@@ -3,13 +3,13 @@ import os
 
 from dotenv import load_dotenv
 
-from src.my_codegen.codegen.facade_generator import FacadeGenerator
-from src.my_codegen.codegen.generate_app_facade import generate_app_facade
-from src.my_codegen.codegen.client_generator import ClientGenerator
-from src.my_codegen.codegen.model_generator import ModelGenerator
-from src.my_codegen.swagger.loader import SwaggerLoader
-from src.my_codegen.swagger.processor import SwaggerProcessor
-from src.my_codegen.utils.logger import logger
+from my_codegen.codegen.facade_generator import FacadeGenerator
+from my_codegen.codegen.generate_app_facade import generate_app_facade
+from my_codegen.codegen.client_generator import ClientGenerator
+from my_codegen.codegen.model_generator import ModelGenerator
+from my_codegen.swagger.loader import SwaggerLoader
+from my_codegen.swagger.processor import SwaggerProcessor
+from my_codegen.utils.logger import logger
 load_dotenv()
 
 
