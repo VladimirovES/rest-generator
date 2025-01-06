@@ -40,7 +40,7 @@ class ClientGenerator:
                 methods=eps,
                 imports=self.imports,
                 models_import_path=f"http_clients.{service_name}.models",
-                service_name=service_name
+                service_name=f"/{service_name}"
 
             )
 
