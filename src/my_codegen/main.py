@@ -82,7 +82,7 @@ def main():
     # 8. Generate local facade -> http_clients/<service_name>/facade.py
     facade_gen = FacadeGenerator(
         facade_class_name=f"{service_name.capitalize()}Api",
-        template_path='templates/facade_template.j2'
+        template_path='facade_template.j2'
     )
     facade_filename = "facade.py"
     logger.info("Generating local facade for the service.")
@@ -92,7 +92,7 @@ def main():
     # 9. Generate global facade (app_facade) -> http_clients/api_facade.py
     logger.info("Generating global (app) facade...")
     generate_app_facade(
-        template_path="templates/app_facade.j2",
+        template_path="app_facade.j2",
         output_path="http_clients/api_facade.py",
         base_dir="http_clients"
     )
