@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List
-from jinja2 import Environment, FileSystemLoader, PackageLoader
+from jinja2 import Environment, PackageLoader
 from my_codegen.codegen.data_models import Endpoint, SubPath
 
 import re
@@ -8,11 +8,6 @@ import re
 
 class ClientGenerator:
     def __init__(self, endpoints: List[Endpoint], imports: List[str], template_name: str):
-        """
-        :param endpoints: список эндпоинтов
-        :param imports: список импортируемых моделей
-        :param template_name: имя файла шаблона, например 'client_template.j2'
-        """
         self.endpoints = endpoints
         self.imports = imports
         self.template_name = template_name
