@@ -8,7 +8,7 @@ import allure
 
 
 class {{ class_name }}(ApiClient):
-    _module_name = "{{ service_name }}"
+    _service = "{{ service_name }}"
     {% for method in methods %}
 
     @allure.step("{{ method.description | replace('\n', '\n' + docstring_indent) }}")
@@ -30,26 +30,26 @@ class {{ class_name }}(ApiClient):
         path =f"{{ method.path }}"
         {% if method.http_method == 'GET' %}
         r_json = self.get(
-            path=self._module_name + path,
+            path=self._service + path,
             params=params,
             expected_status=status
         )
         {% elif method.http_method in ['POST', 'PUT', 'PATCH', 'DELETE'] %}
             {% if method.payload_type and method.payload_type.startswith('List[') %}
         r_json = self.{{ method.http_method.lower() }}(
-            path=path,
+            path=self._service + path,
             payload=[item.dict() for item in payload],
             expected_status=status
         )
             {% elif method.payload_type and method.payload_type != 'Any' %}
         r_json = self.{{ method.http_method.lower() }}(
-            path=path,
+            path=self._service + path,
             payload=payload.dict() if payload else None,
             expected_status=status
         )
             {% else %}
         r_json = self.{{ method.http_method.lower() }}(
-            path=path,
+            path=self._service + path,
             expected_status=status
         )
             {% endif %}
