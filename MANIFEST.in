@@ -1,0 +1,1 @@
+recursive-include src/my_codegen/templates *.j2
