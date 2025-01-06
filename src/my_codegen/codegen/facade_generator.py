@@ -1,14 +1,18 @@
 import os
 from typing import Dict
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 
 
 class FacadeGenerator:
-    def __init__(self, facade_class_name: str, template_path: str):
+    def __init__(self, facade_class_name: str, template_name: str):
         self.facade_class_name = facade_class_name
-        self.template_path = template_path
-        self.env = Environment(loader=FileSystemLoader(''), trim_blocks=True, lstrip_blocks=True)
-        self.template = self.env.get_template(self.template_path)
+        self.template_name = template_name
+        self.env = Environment(
+            loader=PackageLoader("my_codegen", "templates"),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+        self.template = self.env.get_template(self.template_name)
 
     def generate_facade(self,
                         file_to_class: Dict[str, str],

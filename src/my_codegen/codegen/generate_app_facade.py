@@ -1,6 +1,6 @@
 import os
 from typing import List, Dict
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 
 
 def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, str]]:
@@ -18,16 +18,18 @@ def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, 
 
 
 def generate_app_facade(
-    template_path: str,
+    template_name: str,
     output_path: str = "api_facade.py",
     base_dir: str = "http_clients",
 ) -> None:
     services = find_services_with_facade(base_dir)
 
     env = Environment(
-        loader=FileSystemLoader(""), trim_blocks=True, lstrip_blocks=True
+        loader=PackageLoader("my_codegen", "templates"),
+        trim_blocks=True,
+        lstrip_blocks=True
     )
-    template = env.get_template(template_path)
+    template = env.get_template(template_name)
 
     rendered = template.render(services=services)
 
