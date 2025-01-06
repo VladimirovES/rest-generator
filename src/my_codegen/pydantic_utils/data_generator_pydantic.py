@@ -141,7 +141,7 @@ class GenerateData:
             annotation = field_info.annotation
             origin = get_origin(annotation)
             args = get_args(annotation)
-            # Проверяем, является ли поле "Optional[...]"
+            # Проверяем, является ли поле "Optional"
             is_union = origin is Union
             is_optional = is_union and (type(None) in args)
 

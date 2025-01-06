@@ -44,7 +44,6 @@ setuptools.setup(
         "python-dotenv==1.0.1",
         "PyYAML==6.0.2",
         "requests==2.32.3",
-        "ruff==0.8.4",
         "six==1.17.0",
         "typing_extensions==4.12.2",
         "urllib3==2.3.0",
