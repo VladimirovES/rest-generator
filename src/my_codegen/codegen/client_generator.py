@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, PackageLoader
 from my_codegen.codegen.data_models import Endpoint, SubPath
 
 import re
@@ -15,7 +15,7 @@ class ClientGenerator:
         self.template_path = template_path
 
         self.env = Environment(
-            loader=FileSystemLoader(""), trim_blocks=True, lstrip_blocks=True
+            loader=PackageLoader('my_codegen', 'templates')
         )
         self.template = self.env.get_template(self.template_path)
 
