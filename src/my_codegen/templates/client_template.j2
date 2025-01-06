@@ -8,7 +8,7 @@ import allure
 
 
 class {{ class_name }}(ApiClient):
-    _module_name = {{ service_name }}
+    _module_name = "{{ service_name }}""
     {% for method in methods %}
 
     @allure.step("{{ method.description | replace('\n', '\n' + docstring_indent) }}")
