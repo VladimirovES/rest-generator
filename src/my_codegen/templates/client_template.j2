@@ -36,7 +36,7 @@ class {{ class_name }}(ApiClient):
         )
         {% elif method.http_method in ['POST', 'PUT', 'PATCH', 'DELETE'] %}
             {% if method.payload_type and method.payload_type.startswith('List[') %}
-        r_json = _self.{{ method.http_method.lower() }}(
+        r_json = self._{{ method.http_method.lower() }}(
             path=self._service + path,
             payload=[item.dict() for item in payload],
             expected_status=status
@@ -48,17 +48,12 @@ class {{ class_name }}(ApiClient):
             expected_status=status
         )
             {% else %}
-        r_json = self.{{ method.http_method.lower() }}(
+        r_json = self._{{ method.http_method.lower() }}(
             path=self._service + path,
             expected_status=status
         )
+
             {% endif %}
-        {% else %}
-        # Если вдруг HEAD/OPTIONS/etc.
-        r_json = self.{{ method.http_method.lower() }}(
-            path=path,
-            expected_status=status
-        )
         {% endif %}
 
         {% if method.return_type != 'Any' %}
