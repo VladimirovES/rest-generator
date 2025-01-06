@@ -77,7 +77,7 @@ class ModelGenerator:
                 new_lines.append(line)
 
         if not found_pydantic_config_import:
-            import_line = "from src.my_codegen.pydantic_utils.pydantic_config import BaseConfigModel\n"
+            import_line = "from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel\n"
             if last_import_index >= 0:
                 new_lines.insert(last_import_index + 1, import_line)
             else:

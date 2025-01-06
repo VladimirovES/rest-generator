@@ -2,7 +2,7 @@
 from typing import Optional
 
 {% for srv in services %}
-from codegen.http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
+from http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
 {% endfor %}
 
 
