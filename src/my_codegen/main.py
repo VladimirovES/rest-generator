@@ -69,7 +69,7 @@ def main():
     client_gen = ClientGenerator(
         endpoints=endpoints,
         imports=imports,
-        template_path='templates/client_template.j2'
+        template_path='client_template.j2'
     )
     file_to_class = client_gen.generate_clients(endpoints_dir, service_name)
     logger.info(f"Generated {len(file_to_class)} client files.")

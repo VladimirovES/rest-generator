@@ -7,17 +7,22 @@ import re
 
 
 class ClientGenerator:
-    def __init__(
-            self, endpoints: List[Endpoint], imports: List[str], template_path: str
-    ):
+    def __init__(self, endpoints: List[Endpoint], imports: List[str], template_name: str):
+        """
+        :param endpoints: список эндпоинтов
+        :param imports: список импортируемых моделей
+        :param template_name: имя файла шаблона, например 'client_template.j2'
+        """
         self.endpoints = endpoints
         self.imports = imports
-        self.template_path = template_path
+        self.template_name = template_name
 
         self.env = Environment(
-            loader=PackageLoader('my_codegen', 'templates')
+            loader=PackageLoader("my_codegen", "templates"),
+            trim_blocks=True,
+            lstrip_blocks=True
         )
-        self.template = self.env.get_template(self.template_path)
+        self.template = self.env.get_template(self.template_name)
 
     def generate_clients(self, output_dir: str, module: str) -> Dict[str, str]:
         """
