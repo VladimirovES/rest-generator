@@ -1,16 +1,11 @@
-{% set docstring_indent = '    ' %}
 from typing import Optional
 
-{% for srv in services %}
-from http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
-{% endfor %}
+from http_clients.cde.facade import CdeApi
 
 
 class ApiFacade:
 
-    {% for srv in services %}
-    {{ srv.service_name }}: "{{ srv.api_class }}"
-    {% endfor %}
+    cde: "CdeApi"
 
     def __init__(self, auth_token: Optional[str] = None):
         self.auth_token = auth_token
@@ -23,9 +18,7 @@ class ApiFacade:
 
     def _initialize_api(self, name: str):
         api_classes = {
-        {% for srv in services %}
-            "{{ srv.service_name }}": {{ srv.api_class }},
-        {% endfor %}
+            "cde": CdeApi,
         }
         if name in api_classes:
             return api_classes[name](self.auth_token)

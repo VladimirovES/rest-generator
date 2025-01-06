@@ -1,28 +1,35 @@
+import argparse
 import os
 
 from dotenv import load_dotenv
 
-from codegen.generate_app_facade import generate_app_facade
-from swagger.loader import SwaggerLoader
-from swagger.processor import SwaggerProcessor
-from codegen.client_generator import ClientGenerator
-from codegen.facade_generator import FacadeGenerator
-from codegen.model_generator import ModelGenerator
-from utils.logger import logger
+from my_codegen.codegen.facade_generator import FacadeGenerator
+from my_codegen.codegen.generate_app_facade import generate_app_facade
+from my_codegen.codegen.client_generator import ClientGenerator
+from my_codegen.codegen.model_generator import ModelGenerator
+from my_codegen.swagger.loader import SwaggerLoader
+from my_codegen.swagger.processor import SwaggerProcessor
+from my_codegen.utils.logger import logger
 load_dotenv()
 
 
 def main():
-    swagger_path = 'swagger.json'
-    loader = SwaggerLoader(swagger_path)
-
     # 1. Fetch SWAGGER_URL from .env or environment variables
-    swagger_url = os.getenv("SWAGGER_URL")
-    if not swagger_url:
-        logger.warning(
-            "Environment variable SWAGGER_URL is not set. Please configure it in .env or in your environment.")
+    swagger_path = 'swagger.json'
+    parser = argparse.ArgumentParser(description="API Client Generator")
+    parser.add_argument(
+        "--swagger-url",
+        help="URL to download the Swagger JSON from",
+        required=True
+    )
+    args = parser.parse_args()
+
+    swagger_url = args.swagger_url
+    if swagger_url:
+        logger.info(f"Swagger URL from CLI: {swagger_url}")
     else:
-        logger.info(f"Will download Swagger from: {swagger_url}")
+        logger.info("No CLI swagger-url provided, will fallback to environment variable")
+    loader = SwaggerLoader(swagger_path)
 
     # 2. Download swagger.json
     logger.info("Downloading Swagger file...")
@@ -62,7 +69,7 @@ def main():
     client_gen = ClientGenerator(
         endpoints=endpoints,
         imports=imports,
-        template_path='templates/client_template.j2'
+        template_name='client_template.j2'
     )
     file_to_class = client_gen.generate_clients(endpoints_dir, service_name)
     logger.info(f"Generated {len(file_to_class)} client files.")
@@ -75,7 +82,7 @@ def main():
     # 8. Generate local facade -> http_clients/<service_name>/facade.py
     facade_gen = FacadeGenerator(
         facade_class_name=f"{service_name.capitalize()}Api",
-        template_path='templates/facade_template.j2'
+        template_name='facade_template.j2'
     )
     facade_filename = "facade.py"
     logger.info("Generating local facade for the service.")
@@ -85,7 +92,7 @@ def main():
     # 9. Generate global facade (app_facade) -> http_clients/api_facade.py
     logger.info("Generating global (app) facade...")
     generate_app_facade(
-        template_path="templates/app_facade.j2",
+        template_name="app_facade.j2",
         output_path="http_clients/api_facade.py",
         base_dir="http_clients"
     )

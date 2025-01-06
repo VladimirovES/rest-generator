@@ -1,0 +1,33 @@
+{% set docstring_indent = '    ' %}
+from typing import Optional
+
+{% for srv in services %}
+from codegen.http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
+{% endfor %}
+
+
+class ApiFacade:
+
+    {% for srv in services %}
+    {{ srv.service_name }}: "{{ srv.api_class }}"
+    {% endfor %}
+
+    def __init__(self, auth_token: Optional[str] = None):
+        self.auth_token = auth_token
+        self._instances = {}
+
+    def __getattr__(self, name: str):
+        if name not in self._instances:
+            self._instances[name] = self._initialize_api(name)
+        return self._instances[name]
+
+    def _initialize_api(self, name: str):
+        api_classes = {
+        {% for srv in services %}
+            "{{ srv.service_name }}": {{ srv.api_class }},
+        {% endfor %}
+        }
+        if name in api_classes:
+            return api_classes[name](self.auth_token)
+        else:
+            raise AttributeError(f"No such API facade: {name}")

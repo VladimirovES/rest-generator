@@ -6,7 +6,7 @@ from typing import Any, List, Dict, Union, Set, get_args, get_origin, ForwardRef
 from faker import Faker
 from uuid import UUID, uuid4
 
-from pydantic_utils.pydantic_config import BaseConfigModel
+from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
 fake = Faker()
 
@@ -141,7 +141,7 @@ class GenerateData:
             annotation = field_info.annotation
             origin = get_origin(annotation)
             args = get_args(annotation)
-            # Проверяем, является ли поле "Optional[...]"
+            # Проверяем, является ли поле "Optional"
             is_union = origin is Union
             is_optional = is_union and (type(None) in args)
 

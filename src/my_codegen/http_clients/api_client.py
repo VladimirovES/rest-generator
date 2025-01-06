@@ -15,8 +15,8 @@ from requests.adapters import HTTPAdapter, Retry
 import json
 import uuid
 
-from utils.base_url import BaseUrlSingleton
-from utils.logger import allure_report
+from my_codegen.utils.base_url import BaseUrlSingleton
+from my_codegen.utils.logger import allure_report
 
 load_dotenv()
 
