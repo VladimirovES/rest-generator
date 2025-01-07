@@ -93,7 +93,7 @@ class RequestHandler:
             self, prepared_request: requests.PreparedRequest, path: str
     ) -> requests.Response:
         response = self.session.send(prepared_request)
-        with allure.step(f"{prepared_request.method} {path}"):
+        with allure.step(f'<{prepared_request.method}> {path}'):
             allure_report(
                 response=response,
                 payload=prepared_request.body
