@@ -36,7 +36,7 @@ setuptools.setup(
         "pathspec==0.12.1",
         "platformdirs==4.3.6",
         "pluggy==1.5.0",
-        "pydantic==1.10.15",
+        "pydantic==2.10.5",
         "pydantic_core==2.27.2",
         "pyflakes==3.2.0",
         "pytest==8.3.4",
