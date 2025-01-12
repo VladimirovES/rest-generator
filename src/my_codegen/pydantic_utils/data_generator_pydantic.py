@@ -19,33 +19,27 @@ fake = Faker()
 class RandomValueGenerator:
     @staticmethod
     def random_value(field_type: Any, current_depth: int = 0, max_depth: int = 3) -> Any:
-        """
-        Генерирует случайное значение для заданного field_type
-        (учитывая Optional, Union, контейнеры и рекурсию).
-        Если поле имеет ограничения (min_length, max_length),
-        заданные через Annotated/Field/StringConstraints,
-        пытаемся найти их и применить.
-        """
         origin = get_origin(field_type)
         args = get_args(field_type)
 
-        # 1) Union[Something, None] => извлечь not-None
+        # 1) Union[Something, None]
         if origin is Union and type(None) in args:
             for arg in args:
                 if arg is not type(None):
                     return RandomValueGenerator.random_value(arg, current_depth, max_depth)
 
-        # 2) Union[...] (без None)
+        # 2) Union (без None)
         if origin is Union:
             chosen = random.choice(args)
             return RandomValueGenerator.random_value(chosen, current_depth, max_depth)
 
-        # 3) Annotated[...]?
-        #    Если поле объявлено как Annotated[<base_type>, <meta1>, <meta2>...],
-        #    то base_type = args[0], а все метаданные = args[1:].
-        if origin is Annotated:
-            base_type = args[0]
-            metadata = args[1:]
+        # 3) Annotated
+        # Проверяем, что это действительно Annotated (или "AnnotatedValue")
+        # самый простой способ — сравнить origin
+        # либо проверить, что 'Annotated' есть в названии
+        if origin is Annotated or "AnnotatedValue" in str(origin) or "Annotated" in str(origin):
+            base_type = args[0] if args else str
+            metadata = args[1:] if len(args) > 1 else ()
             return RandomValueGenerator._handle_annotated(
                 base_type, metadata, current_depth, max_depth
             )
@@ -54,20 +48,17 @@ class RandomValueGenerator:
         if field_type is Any:
             return random.choice([fake.word(), random.randint(1, 1000), random.uniform(1.0, 100.0)])
 
-        # 5) Примитивные типы
+        # 5) Примитивы
         if field_type is str:
             return fake.text(max_nb_chars=20)
-
         if field_type is int:
             return random.randint(1, 1000)
-
         if field_type is float:
             return random.uniform(1.0, 100.0)
-
         if field_type is bool:
             return random.choice([True, False])
 
-        # 6) datetime / date
+        # 6) datetime/date
         if field_type is datetime:
             return (datetime.now() + timedelta(days=1)).isoformat() + "Z"
         if field_type is date:
@@ -77,7 +68,7 @@ class RandomValueGenerator:
         if field_type is UUID:
             return str(uuid4())
 
-        # 8) Контейнеры: list, dict, set
+        # 8) Контейнеры
         if origin in (list, List):
             if current_depth >= max_depth:
                 return []
@@ -85,17 +76,13 @@ class RandomValueGenerator:
                 RandomValueGenerator.random_value(args[0], current_depth + 1, max_depth)
                 for _ in range(random.randint(1, 2))
             ]
-
         if origin in (dict, Dict):
             if current_depth >= max_depth:
                 return {}
             return {
-                fake.word(): RandomValueGenerator.random_value(
-                    args[1], current_depth + 1, max_depth
-                )
+                fake.word(): RandomValueGenerator.random_value(args[1], current_depth + 1, max_depth)
                 for _ in range(random.randint(1, 2))
             }
-
         if origin in (set, Set):
             if current_depth >= max_depth:
                 return set()
@@ -108,7 +95,7 @@ class RandomValueGenerator:
         if isinstance(field_type, type) and issubclass(field_type, Enum):
             return random.choice(list(field_type))
 
-        # 10) BaseConfigModel (ваша модель, наследующаяся от pydantic.BaseModel)
+        # 10) Pydantic-модель
         if isinstance(field_type, type) and issubclass(field_type, BaseConfigModel):
             if current_depth >= max_depth:
                 return None
@@ -119,27 +106,21 @@ class RandomValueGenerator:
         if isinstance(field_type, ForwardRef):
             return []
 
-        # Если ничего не подошло — бросаем ошибку
+        # 12) Ничего не подошло
         raise ValueError(f"Unsupported field type: {field_type}")
 
     @staticmethod
     def _handle_annotated(base_type: Any, metadata: tuple, current_depth: int, max_depth: int) -> Any:
-        """
-        Вспомогательный метод, чтобы распарсить Annotated[...] поля.
-        Ищем среди метаданных Field(...) или StringConstraints(...),
-        берём min_length, max_length и т.п.
-        """
+        # Сохраняем вашу логику
         if base_type is str:
             min_len = 1
             max_len = 20
             for meta in metadata:
-                # Если meta — это Field(...)
                 if isinstance(meta, Field):
                     if meta.min_length is not None:
                         min_len = meta.min_length
                     if meta.max_length is not None:
                         max_len = meta.max_length
-                # Если meta — это StringConstraints(...)
                 if isinstance(meta, StringConstraints):
                     if meta.min_length is not None:
                         min_len = meta.min_length
@@ -149,6 +130,7 @@ class RandomValueGenerator:
             length = random.randint(min_len, max_len) if min_len <= max_len else 1
             return fake.pystr(min_chars=length, max_chars=length)
 
+        # Если Annotated[...] чего-то другого
         return RandomValueGenerator.random_value(base_type, current_depth, max_depth)
 
 
