@@ -35,8 +35,6 @@ class RandomValueGenerator:
 
         # 3) Annotated
         # Проверяем, что это действительно Annotated (или "AnnotatedValue")
-        # самый простой способ — сравнить origin
-        # либо проверить, что 'Annotated' есть в названии
         if origin is Annotated or "AnnotatedValue" in str(origin) or "Annotated" in str(origin):
             base_type = args[0] if args else str
             metadata = args[1:] if len(args) > 1 else ()
@@ -130,7 +128,6 @@ class RandomValueGenerator:
             length = random.randint(min_len, max_len) if min_len <= max_len else 1
             return fake.pystr(min_chars=length, max_chars=length)
 
-        # Если Annotated[...] чего-то другого
         return RandomValueGenerator.random_value(base_type, current_depth, max_depth)
 
 
