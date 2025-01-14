@@ -11,7 +11,7 @@ from faker import Faker
 
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
-from pydantic import Field, StringConstraints
+from pydantic import Field, StringConstraints, RootModel
 
 fake = Faker()
 
@@ -66,7 +66,7 @@ class RandomValueGenerator:
         if field_type is UUID:
             return str(uuid4())
 
-        # 8) Контейнеры
+        # 8) Контейнеры (List, Dict, Set и т.д.)
         if origin in (list, List):
             if current_depth >= max_depth:
                 return []
@@ -93,7 +93,13 @@ class RandomValueGenerator:
         if isinstance(field_type, type) and issubclass(field_type, Enum):
             return random.choice(list(field_type))
 
-        # 10) Pydantic-модель
+        # 9.1) Если это Pydantic RootModel
+        if isinstance(field_type, type) and issubclass(field_type, RootModel):
+            root_annotation = field_type.model_fields["root"].annotation
+            generated = RandomValueGenerator.random_value(root_annotation, current_depth, max_depth)
+            return field_type.model_construct(root=generated, _fields_set={"root"})
+
+        # 10) Обрабатываем Pydantic-модель (ваш BaseConfigModel или BaseModel)
         if isinstance(field_type, type) and issubclass(field_type, BaseConfigModel):
             if current_depth >= max_depth:
                 return None
@@ -109,7 +115,6 @@ class RandomValueGenerator:
 
     @staticmethod
     def _handle_annotated(base_type: Any, metadata: tuple, current_depth: int, max_depth: int) -> Any:
-        # Сохраняем вашу логику
         if base_type is str:
             min_len = 1
             max_len = 20
@@ -119,7 +124,7 @@ class RandomValueGenerator:
                         min_len = meta.min_length
                     if meta.max_length is not None:
                         max_len = meta.max_length
-                if isinstance(meta, StringConstraints):
+                elif isinstance(meta, StringConstraints):
                     if meta.min_length is not None:
                         min_len = meta.min_length
                     if meta.max_length is not None:
@@ -128,6 +133,7 @@ class RandomValueGenerator:
             length = random.randint(min_len, max_len) if min_len <= max_len else 1
             return fake.pystr(min_chars=length, max_chars=length)
 
+        # Если это Annotated[int], Annotated[float] и т.д., используем общую логику
         return RandomValueGenerator.random_value(base_type, current_depth, max_depth)
 
 
@@ -225,3 +231,4 @@ class GenerateData:
                     result[k] = v
             return result
         return instance
+#
