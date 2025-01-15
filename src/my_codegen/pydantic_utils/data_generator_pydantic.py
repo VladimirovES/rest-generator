@@ -231,4 +231,3 @@ class GenerateData:
                     result[k] = v
             return result
         return instance
-#
