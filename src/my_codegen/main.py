@@ -79,10 +79,6 @@ def main():
         file_to_class = client_gen.generate_clients(endpoints_dir, service_name)
         logger.info(f"Generated {len(file_to_class)} client files.")
 
-        logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
-        model_gen.post_process_code(service_dir)
-        logger.info("Auto-format completed.")
-
         logger.info("Generating local facade...")
         facade_gen = FacadeGenerator(
             facade_class_name=f"{service_name.capitalize()}Api",
@@ -99,6 +95,10 @@ def main():
             base_dir="http_clients"
         )
         logger.info("Global facade generated successfully.")
+
+    logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
+    ModelGenerator.post_process_code(service_dir)
+    logger.info("Auto-format completed.")
 
     logger.info(
         f"Clients (endpoints/*.py), models, and facade for service '{service_name}' have been created at '{service_dir}'."

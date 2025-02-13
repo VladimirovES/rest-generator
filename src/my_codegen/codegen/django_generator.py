@@ -1,9 +1,6 @@
-# my_codegen/codegen/django_generator.py
-
-import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from jinja2 import Template
 
 def make_folder_name(title: str) -> str:
@@ -21,28 +18,18 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     :param base_output_dir: Путь к папке, куда будем складывать файлы (обычно http_clients/<service_name>).
     """
 
-    # -------------------------------
-    # Из swagger_dict получим title и basePath
-    # -------------------------------
     info = swagger_dict.get("info", {})
     module_title = info.get("title", "module")
     MODULE_FOLDER = make_folder_name(module_title)
 
-    # Можно (по желанию) игнорировать MODULE_FOLDER и писать прямо в base_output_dir,
-    # но если хотите вложенную структуру "http_clients/<module_folder>",
-    # то сделайте так:
     BASE_OUTPUT_DIR = Path(base_output_dir)  # <= "http_clients/<service_name>"
     BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Места, куда будем писать
     MODELS_OUTPUT_FILE = BASE_OUTPUT_DIR / "models.py"
     FACADE_OUTPUT_FILE = BASE_OUTPUT_DIR / "facade.py"
     ENDPOINTS_DIR = BASE_OUTPUT_DIR / "endpoints"
     ENDPOINTS_DIR.mkdir(exist_ok=True)
 
-    # -------------------------------
-    # 1. Генерация моделей по definitions
-    # -------------------------------
     definitions = swagger_dict.get("definitions", {})
 
     TYPE_MAPPING = {
@@ -113,9 +100,6 @@ from datetime import datetime, date
     MODELS_OUTPUT_FILE.write_text(rendered_models, encoding="utf-8")
     print(f"[Django] Модели сгенерированы в {MODELS_OUTPUT_FILE}")
 
-    # -------------------------------
-    # 2. Генерация данных для endpoint‑методов из paths
-    # -------------------------------
     paths = swagger_dict.get("paths", {})
     http_methods = {"get", "post", "put", "delete", "patch"}
     methods_list: List[Dict[str, Any]] = []
@@ -142,7 +126,6 @@ from datetime import datetime, date
             tags = details.get("tags", [])
             tag = tags[0] if tags else "default"
 
-            # Ищем модель ответа (упрощённо — по коду 200/201)
             response_model = None
             responses = details.get("responses", {})
             for code in ("200", "201"):
@@ -154,7 +137,6 @@ from datetime import datetime, date
             if not response_model:
                 response_model = "Any"
 
-            # Если есть body, укажем для payload_type "dict" (упрощённо)
             payload_type = None
             if body_params:
                 payload_type = "dict"
@@ -175,18 +157,13 @@ from datetime import datetime, date
                 "tag": tag,
             })
 
-    # basePath (если есть)
     base_path = swagger_dict.get("basePath", "")
 
-    # Группируем методы по тегу
     endpoints_by_tag: Dict[str, List[Dict[str, Any]]] = {}
     for m in methods_list:
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    # -------------------------------
-    # 3. Генерация файлов с классами эндпоинтов по группам
-    # -------------------------------
     endpoint_template_path = Path("endpoint_template.jinja")
     if not endpoint_template_path.exists():
         raise FileNotFoundError("Файл шаблона endpoint_template.jinja не найден.")
@@ -194,16 +171,13 @@ from datetime import datetime, date
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
 
-    # Импорт моделей
-    # (Если хотите строго использовать service_dir как часть импорта —
-    #  переделайте. Сейчас берётся из "base_output_dir" basename.)
     models_import_path = f"http_clients.{Path(base_output_dir).name}.models"
 
     imports_list = list(definitions.keys())
 
     for tag, methods in endpoints_by_tag.items():
         class_name = f"{tag.capitalize()}"
-        service_name = base_path  # условно
+        service_name = base_path
         rendered_class = endpoint_template.render(
             models_import_path=models_import_path,
             imports=imports_list,
@@ -215,9 +189,6 @@ from datetime import datetime, date
         output_file.write_text(rendered_class, encoding="utf-8")
         print(f"[Django] Код для группы '{tag}' сгенерирован в {output_file}")
 
-    # -------------------------------
-    # 4. Генерация фасада (объединяющего все классы эндпоинтов)
-    # -------------------------------
     facade_template_path = Path("facade_template.jinja")
     if not facade_template_path.exists():
         raise FileNotFoundError("Файл шаблона facade_template.jinja не найден.")
