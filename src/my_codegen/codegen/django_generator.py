@@ -166,9 +166,9 @@ from datetime import datetime, date
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    endpoint_template_path = Path("django_template.jinja")
+    endpoint_template_path = (Path(__file__).parent / "templates" / "django_template.j2").absolute()
     if not endpoint_template_path.exists():
-        raise FileNotFoundError("Файл шаблона django_template..jinja не найден.")
+        raise FileNotFoundError("Файл шаблона endpoint_template.jinja не найден.")
 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
