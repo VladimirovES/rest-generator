@@ -32,7 +32,7 @@ def main():
     logger.info(f"Swagger URL from CLI: {swagger_url}")
 
     # 1. Скачиваем и парсим swagger.json
-    swagger_path = 'swagger.json'
+    swagger_path = "swagger.json"
     loader = SwaggerLoader(swagger_path)
     logger.info("Downloading Swagger file...")
     loader.download_swagger(url=swagger_url)
@@ -43,29 +43,27 @@ def main():
     logger.info(f"Service identified as: {service_name}")
 
     # 2. Создаем выходные директории: http_clients/<service_name>/ и endpoints/
-    base_output_dir = 'http_clients'
+    base_output_dir = "http_clients"
     service_dir = os.path.join(base_output_dir, service_name)
     endpoints_dir = os.path.join(service_dir, "endpoints")
     os.makedirs(service_dir, exist_ok=True)
     os.makedirs(endpoints_dir, exist_ok=True)
     logger.info(f"Created directories: '{service_dir}' and '{endpoints_dir}'")
 
-    # 3. Генерация моделей (в http_clients/<service_name>/models.py)
-    models_file = os.path.join(service_dir, "models")
-    model_gen = ModelGenerator(swagger_path, models_file)
-    logger.info("Generating Pydantic models (via datamodel-codegen)...")
-    model_gen.generate_models()
-    logger.info("Fixing BaseModel->BaseConfigModel inheritance...")
-    model_gen.fix_models_inheritance()
-    logger.info("Models generated and fixed.")
-
-    # 4. Если флаг --django передан, вызываем Django-генератор
+    # 4. Если передан флаг --django, вызываем django-генерацию, иначе используем старый функционал
     if args.django:
         logger.info("Django mode enabled. Generating Django-specific client code...")
         generate_django_code(swagger_dict, service_dir)
     else:
-        # 5. Иначе используем старую логику генерации клиентских классов и фасада
-        logger.info("Using legacy client generation.")
+        # 3. Генерация моделей (в http_clients/<service_name>/models.py)
+        models_file = os.path.join(service_dir, "models")
+        model_gen = ModelGenerator(swagger_path, models_file)
+        logger.info("Generating Pydantic models (via datamodel-codegen)...")
+        model_gen.generate_models()
+        logger.info("Fixing BaseModel->BaseConfigModel inheritance...")
+        model_gen.fix_models_inheritance()
+        logger.info("Models generated and fixed.")
+        logger.info("Non-Django mode: using legacy client generation.")
         logger.info("Extracting endpoints and imports from swagger.")
         processor = SwaggerProcessor(swagger_dict)
         endpoints = processor.extract_endpoints()
@@ -80,10 +78,6 @@ def main():
         )
         file_to_class = client_gen.generate_clients(endpoints_dir, service_name)
         logger.info(f"Generated {len(file_to_class)} client files.")
-
-        logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
-        model_gen.post_process_code(service_dir)
-        logger.info("Auto-format completed.")
 
         logger.info("Generating local facade...")
         facade_gen = FacadeGenerator(
@@ -101,6 +95,10 @@ def main():
             base_dir="http_clients"
         )
         logger.info("Global facade generated successfully.")
+
+    logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
+    ModelGenerator.post_process_code(base_output_dir)
+    logger.info("Auto-format completed.")
 
     logger.info(
         f"Clients (endpoints/*.py), models, and facade for service '{service_name}' have been created at '{service_dir}'."

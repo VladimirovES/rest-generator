@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List
@@ -166,9 +167,11 @@ from datetime import datetime, date
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    endpoint_template_path = Path("endpoint_template.jinja")
+    TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "templates"
+
+    endpoint_template_path = TEMPLATE_DIR / "django_template.j2"
     if not endpoint_template_path.exists():
-        raise FileNotFoundError("Файл шаблона endpoint_template.jinja не найден.")
+        raise FileNotFoundError(f"Файл шаблона {endpoint_template_path} не найден. Создайте его.")
 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
