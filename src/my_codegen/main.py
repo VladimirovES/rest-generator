@@ -97,7 +97,7 @@ def main():
         logger.info("Global facade generated successfully.")
 
     logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
-    ModelGenerator.post_process_code(service_dir)
+    ModelGenerator.post_process_code(base_output_dir)
     logger.info("Auto-format completed.")
 
     logger.info(

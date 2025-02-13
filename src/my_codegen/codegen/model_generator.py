@@ -88,8 +88,8 @@ class ModelGenerator:
 
         with open(models_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
-
-    def post_process_code(self, output_dir: str) -> None:
+    @staticmethod
+    def post_process_code(output_dir: str) -> None:
         """
         Запускает autoflake и black для автоформатирования и удаления неиспользуемых импортов.
         """
