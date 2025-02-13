@@ -13,6 +13,8 @@ from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
 from pydantic import Field, StringConstraints, RootModel
 
+from src.my_codegen.http_clients.cde.models import CreateApprovalProcessTemplateRequest
+
 fake = Faker()
 
 
@@ -98,6 +100,11 @@ class RandomValueGenerator:
             root_annotation = field_type.model_fields["root"].annotation
             generated = RandomValueGenerator.random_value(root_annotation, current_depth, max_depth)
             return field_type.model_construct(root=generated, _fields_set={"root"})
+
+        # if isinstance(field_type, type) and issubclass(field_type, RootModel):
+        #     root_annotation = field_type.model_fields["root"].annotation
+        #     return RandomValueGenerator.random_value(root_annotation, current_depth, max_depth)
+
 
         # 10) Обрабатываем Pydantic-модель (ваш BaseConfigModel или BaseModel)
         if isinstance(field_type, type) and issubclass(field_type, BaseConfigModel):
@@ -231,3 +238,4 @@ class GenerateData:
                     result[k] = v
             return result
         return instance
+
