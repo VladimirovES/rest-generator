@@ -3,11 +3,13 @@ from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template
 
+
 def make_folder_name(title: str) -> str:
     name = title.lower().strip()
     name = re.sub(r"\s+", "_", name)
     name = re.sub(r"[^\w_]", "", name)
     return name
+
 
 def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> None:
     """
@@ -164,9 +166,9 @@ from datetime import datetime, date
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    endpoint_template_path = Path("endpoint_template.jinja")
+    endpoint_template_path = Path("django_template.jinja")
     if not endpoint_template_path.exists():
-        raise FileNotFoundError("Файл шаблона endpoint_template.jinja не найден.")
+        raise FileNotFoundError("Файл шаблона django_template..jinja не найден.")
 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
