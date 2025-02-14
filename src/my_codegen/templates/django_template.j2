@@ -17,7 +17,7 @@ class {{ class_name }}(ApiClient):
                            {{ param }},
                            {%- endfor %}
                            {%- if method.http_method == 'GET' %}
-                           params: Optional[Dict[str, Any]] = None,
+                           query: Optional[{{ method.query_type }}] = None,
                            {%- else %}
                              {% if method.payload_type %}
                            payload: {{ method.payload_type }},
@@ -30,7 +30,7 @@ class {{ class_name }}(ApiClient):
         {%- if method.http_method == 'GET' %}
         r_json = self._get(
             path=self._service + path,
-            params=params,
+            params=query.dict() if query else None,
             expected_status=status
         )
         {%- elif method.http_method in ['POST', 'PUT', 'PATCH', 'DELETE'] %}

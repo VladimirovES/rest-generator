@@ -14,18 +14,19 @@ def make_folder_name(title: str) -> str:
 
 def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> None:
     """
-    Генерирует Django-подобный клиент (эндпоинты, фасад) и модели Pydantic
-    в указанный каталог base_output_dir.
+    Генерирует Django-подобный клиент (эндпоинты, фасад) и Pydantic-модели для запросов (Request),
+    ответов (Response) и query-параметров (Query) в указанный каталог base_output_dir.
+
+    Если для схемы задан $ref – используется существующая модель, иначе inline‑модель генерируется автоматически.
 
     :param swagger_dict: Парсенный swagger (dict из JSON).
-    :param base_output_dir: Путь к папке, куда будем складывать файлы (обычно http_clients/<service_name>).
+    :param base_output_dir: Путь к папке, куда будут записаны файлы (обычно http_clients/<service_name>).
     """
-
     info = swagger_dict.get("info", {})
     module_title = info.get("title", "module")
     MODULE_FOLDER = make_folder_name(module_title)
 
-    BASE_OUTPUT_DIR = Path(base_output_dir)  # <= "http_clients/<service_name>"
+    BASE_OUTPUT_DIR = Path(base_output_dir)
     BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     MODELS_OUTPUT_FILE = BASE_OUTPUT_DIR / "models.py"
@@ -47,11 +48,21 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         """Преобразует описание типа Swagger в строковое представление типа Python."""
         if "$ref" in prop:
             return prop["$ref"].split("/")[-1]
+
         prop_type = prop.get("type")
+        prop_format = prop.get("format")
+
+        # Если тип - строка с форматом date-time или тип уже "date-time"
+        if (prop_type == "string" and prop_format == "date-time") or (prop_type == "date-time"):
+            return "datetime"
+        if (prop_type == "string" and prop_format == "date") or (prop_type == "date"):
+            return "date"
+
         if prop_type == "array":
             items = prop.get("items", {})
             inner_type = convert_type(items)
             return f"List[{inner_type}]"
+
         return TYPE_MAPPING.get(prop_type, "Any")
 
     def generate_field(prop_name: str, details: Dict[str, Any], required: bool) -> str:
@@ -71,7 +82,10 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         return f"    {prop_name}: {field_type} = Field({default}{field_args_str})"
 
     def generate_model(model_name: str, model: Dict[str, Any]) -> str:
-        """Генерирует класс модели Pydantic по описанию Swagger."""
+        """
+        Генерирует класс модели Pydantic по описанию Swagger.
+        Если в схеме нет свойств, возвращается модель с pass.
+        """
         properties = model.get("properties", {})
         required_props = model.get("required", [])
         lines = [f"class {model_name}(BaseModel):"]
@@ -83,29 +97,17 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
                 lines.append(generate_field(prop_name, details, is_required))
         return "\n".join(lines)
 
+    # Генерируем модели из definitions
     models: List[str] = []
     for model_name, model in definitions.items():
         models.append(generate_model(model_name, model))
 
-    # Шаблон для моделей (можно вынести в отдельный файл .jinja, но пока оставим прямо здесь)
-    models_template_str = r'''from __future__ import annotations
-from pydantic import BaseModel, Field
-from typing import Optional, List, Any
-from datetime import datetime, date
+    # Набор для сбора имён inline-моделей (Request/Response/Query)
+    inline_model_names = set()
 
-{% for model in models %}
-{{ model }}
-
-{% endfor %}
-'''
-    template_models = Template(models_template_str)
-    rendered_models = template_models.render(models=models)
-    MODELS_OUTPUT_FILE.write_text(rendered_models, encoding="utf-8")
-    print(f"[Django] Модели сгенерированы в {MODELS_OUTPUT_FILE}")
-
+    methods_list: List[Dict[str, Any]] = []
     paths = swagger_dict.get("paths", {})
     http_methods = {"get", "post", "put", "delete", "patch"}
-    methods_list: List[Dict[str, Any]] = []
 
     for path, methods in paths.items():
         for method, details in methods.items():
@@ -114,6 +116,7 @@ from datetime import datetime, date
             parameters = details.get("parameters", [])
             path_params = [p for p in parameters if p.get("in") == "path"]
             body_params = [p for p in parameters if p.get("in") == "body"]
+            query_params = [p for p in parameters if p.get("in") == "query"]
 
             operation_id = details.get("operationId")
             if not operation_id:
@@ -121,32 +124,71 @@ from datetime import datetime, date
                 operation_id = f"{method.lower()}_{op_suffix}"
 
             description = details.get("description", operation_id)
-            if description:
-                description = description.replace("\n", " ").strip()
-            else:
-                description = operation_id
+            description = description.replace("\n", " ").strip() if description else operation_id
 
             tags = details.get("tags", [])
             tag = tags[0] if tags else "default"
 
+            # Обработка схемы ответа (Response)
             response_model = None
             responses = details.get("responses", {})
             for code in ("200", "201"):
                 if code in responses:
                     schema = responses[code].get("schema", {})
-                    if "$ref" in schema:
-                        response_model = schema["$ref"].split("/")[-1]
+                    if schema:
+                        if "$ref" in schema:
+                            response_model = schema["$ref"].split("/")[-1]
+                        else:
+                            if schema.get("properties"):
+                                response_model = f"{operation_id.capitalize()}Response"
+                                inline_resp_model = generate_model(response_model, schema)
+                                models.append(inline_resp_model)
+                                inline_model_names.add(response_model)
+                            else:
+                                response_model = "Any"
                         break
             if not response_model:
                 response_model = "Any"
 
+            # Обработка схемы запроса (Request)
             payload_type = None
             if body_params:
-                payload_type = "dict"
+                body_param = body_params[0]
+                schema = body_param.get("schema", {})
+                if schema:
+                    if "$ref" in schema:
+                        payload_type = schema["$ref"].split("/")[-1]
+                    else:
+                        if schema.get("properties"):
+                            payload_type = f"{operation_id.capitalize()}Request"
+                            inline_req_model = generate_model(payload_type, schema)
+                            models.append(inline_req_model)
+                            inline_model_names.add(payload_type)
+                        else:
+                            payload_type = "Any"
+            else:
+                payload_type = None
 
-            method_parameters = []
-            for p in path_params:
-                method_parameters.append(f"{p['name']}: str")
+            # Обработка query-параметров (генерируем модель, если есть)
+            if query_params:
+                query_schema = {"properties": {}, "required": []}
+                for qp in query_params:
+                    query_schema["properties"][qp["name"]] = qp
+                    if qp.get("required", False):
+                        query_schema["required"].append(qp["name"])
+                query_model = f"{operation_id.capitalize()}Query"
+                if query_schema["properties"]:
+                    inline_query_model = generate_model(query_model, query_schema)
+                    models.append(inline_query_model)
+                    inline_model_names.add(query_model)
+                else:
+                    query_model = "Any"
+            else:
+                query_model = None
+
+            # Собираем параметры метода: используем только path-параметры;
+            # query-параметры будут добавляться отдельно в шаблоне.
+            method_parameters = [f"{p['name']}: str" for p in path_params]
 
             methods_list.append({
                 "name": operation_id,
@@ -154,6 +196,7 @@ from datetime import datetime, date
                 "method_parameters": method_parameters,
                 "http_method": method.upper(),
                 "payload_type": payload_type,
+                "query_type": query_model,
                 "expected_status": "OK",
                 "return_type": response_model,
                 "path": path,
@@ -162,29 +205,29 @@ from datetime import datetime, date
 
     base_path = swagger_dict.get("basePath", "")
 
+    # Группируем операции по тегам
     endpoints_by_tag: Dict[str, List[Dict[str, Any]]] = {}
     for m in methods_list:
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
+    # Генерация клиентских классов по шаблону
     TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / "templates"
     endpoint_template_path = TEMPLATE_DIR / "django_template.j2"
-
     if not endpoint_template_path.exists():
         raise FileNotFoundError(f"Файл шаблона {endpoint_template_path} не найден. Создайте его.")
 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
 
-    models_import_path = f"http_clients.{Path(base_output_dir).name}.models"
-
-    imports_list = list(definitions.keys())
+    # Формируем список для импорта – объединяем имена моделей из definitions и inline-моделей
+    imports_list = list(definitions.keys()) + list(inline_model_names)
 
     for tag, methods in endpoints_by_tag.items():
         class_name = f"{tag.capitalize()}"
         service_name = base_path
         rendered_class = endpoint_template.render(
-            models_import_path=models_import_path,
+            models_import_path=f"http_clients.{Path(base_output_dir).name}.models",
             imports=imports_list,
             class_name=class_name,
             service_name=service_name,
@@ -192,15 +235,15 @@ from datetime import datetime, date
         )
         output_file = ENDPOINTS_DIR / f"{tag.lower()}_client.py"
         output_file.write_text(rendered_class, encoding="utf-8")
-        print(f"[Django] Код для группы '{tag}' сгенерирован в {output_file}")
+        print(f"[Django] Клиент для группы '{tag}' сгенерирован в {output_file}")
 
+    # Генерация фасада
     facade_template_path = Path("facade_template.jinja")
     if not facade_template_path.exists():
         raise FileNotFoundError("Файл шаблона facade_template.jinja не найден.")
 
     facade_template_str = facade_template_path.read_text(encoding="utf-8")
     facade_template = Template(facade_template_str)
-
     facade_imports = []
     for tag in endpoints_by_tag.keys():
         facade_imports.append({
@@ -215,5 +258,20 @@ from datetime import datetime, date
     )
     FACADE_OUTPUT_FILE.write_text(rendered_facade, encoding="utf-8")
     print(f"[Django] Фасад сгенерирован в {FACADE_OUTPUT_FILE}")
+
+    # Записываем все сгенерированные модели в файл models.py
+    rendered_models = Template(
+        '''from __future__ import annotations
+from pydantic import BaseModel, Field
+from typing import Optional, List, Any
+from datetime import datetime, date
+
+{% for model in models %}
+{{ model }}
+
+{% endfor %}'''
+    ).render(models=models)
+    MODELS_OUTPUT_FILE.write_text(rendered_models, encoding="utf-8")
+    print(f"[Django] Модели сгенерированы в {MODELS_OUTPUT_FILE}")
 
     print("[Django] Генерация завершена.")
