@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template
+from http import HTTPStatus
 
 
 def make_folder_name(title: str) -> str:
@@ -115,17 +116,15 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     methods_list: List[Dict[str, Any]] = []
     paths = swagger_dict.get("paths", {})
 
-    # При обработке пути учитываем глобальные параметры, заданные на уровне пути
     http_methods = {"get", "post", "put", "delete", "patch"}
     for path, path_item in paths.items():
-        # Глобальные параметры для этого пути (если есть)
+        # Глобальные параметры для данного пути (если заданы)
         global_params = path_item.get("parameters", [])
         for method, details in path_item.items():
             if method.lower() not in http_methods:
                 continue
-            # Объединяем глобальные параметры с параметрами метода
+            # Объединяем глобальные параметры и параметры метода
             parameters = global_params + details.get("parameters", [])
-            # Фильтруем по "in"
             path_params = [p for p in parameters if p.get("in") == "path"]
             body_params = [p for p in parameters if p.get("in") == "body"]
             query_params = [p for p in parameters if p.get("in") == "query"]
@@ -144,22 +143,28 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             # Обработка схемы ответа (Response)
             response_model = None
             responses = details.get("responses", {})
-            for code in ("200", "201"):
-                if code in responses:
-                    schema = responses[code].get("schema", {})
-                    if schema:
-                        if "$ref" in schema:
-                            response_model = schema["$ref"].split("/")[-1]
+            # Если заданы числовые коды, выбираем минимальный
+            status_codes = [int(code) for code in responses.keys() if code.isdigit()]
+            if status_codes:
+                chosen_status = min(status_codes)
+                expected_status = HTTPStatus(chosen_status).name
+                # Если схема ответа определена, пытаемся её обработать
+                schema = responses.get(str(chosen_status), {}).get("schema", {})
+                if schema:
+                    if "$ref" in schema:
+                        response_model = schema["$ref"].split("/")[-1]
+                    else:
+                        if schema.get("properties"):
+                            response_model = f"{operation_id.capitalize()}Response"
+                            inline_resp_model = generate_model(response_model, schema)
+                            models.append(inline_resp_model)
+                            inline_model_names.add(response_model)
                         else:
-                            if schema.get("properties"):
-                                response_model = f"{operation_id.capitalize()}Response"
-                                inline_resp_model = generate_model(response_model, schema)
-                                models.append(inline_resp_model)
-                                inline_model_names.add(response_model)
-                            else:
-                                response_model = "Any"
-                        break
-            if not response_model:
+                            response_model = "Any"
+                else:
+                    response_model = "Any"
+            else:
+                expected_status = "OK"
                 response_model = "Any"
 
             # Обработка схемы запроса (Request)
@@ -198,8 +203,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             else:
                 query_model = None
 
-            # Собираем параметры метода: используем только path-параметры;
-            # query-параметры будут добавляться отдельно в шаблоне.
+            # Собираем параметры метода: используем только path-параметры.
             method_parameters = [f"{p['name']}: str" for p in path_params]
 
             methods_list.append({
@@ -209,7 +213,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
                 "http_method": method.upper(),
                 "payload_type": payload_type,
                 "query_type": query_model,
-                "expected_status": "OK",
+                "expected_status": expected_status,
                 "return_type": response_model,
                 "path": path,
                 "tag": tag,
