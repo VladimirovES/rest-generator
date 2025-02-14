@@ -24,7 +24,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     ответов (Response) и query-параметров (Query) в указанный каталог base_output_dir.
 
     Если для схемы задан $ref – используется существующая модель, иначе inline‑модель генерируется автоматически.
-    Глобальные параметры (на уровне пути) объединяются с параметрами операции.
+    Глобальные параметры (на уровне пути) объединяются с параметрами операции, при этом дубликаты по имени отфильтровываются.
 
     Название фасада генерируется как имя каталога (например, "my_service") в CamelCase с добавлением "Facade".
 
@@ -148,7 +148,6 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             if status_codes:
                 chosen_status = min(status_codes)
                 expected_status = HTTPStatus(chosen_status).name
-                # Если схема ответа определена, пытаемся её обработать
                 schema = responses.get(str(chosen_status), {}).get("schema", {})
                 if schema:
                     if "$ref" in schema:
@@ -204,7 +203,14 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
                 query_model = None
 
             # Собираем параметры метода: используем только path-параметры.
-            method_parameters = [f"{p['name']}: str" for p in path_params]
+            # Отфильтровываем дубликаты по имени.
+            seen = set()
+            unique_path_params = []
+            for p in path_params:
+                if p["name"] not in seen:
+                    unique_path_params.append(p)
+                    seen.add(p["name"])
+            method_parameters = [f"{p['name']}: str" for p in unique_path_params]
 
             methods_list.append({
                 "name": operation_id,
