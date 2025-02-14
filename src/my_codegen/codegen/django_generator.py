@@ -12,6 +12,11 @@ def make_folder_name(title: str) -> str:
     return name
 
 
+def to_camel_case(s: str) -> str:
+    """Преобразует строку из snake_case в CamelCase."""
+    return ''.join(word.capitalize() for word in s.split('_'))
+
+
 def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> None:
     """
     Генерирует Django-подобный клиент (эндпоинты, фасад) и Pydantic-модели для запросов (Request),
@@ -19,6 +24,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
 
     Если для схемы задан $ref – используется существующая модель, иначе inline‑модель генерируется автоматически.
 
+    Название фасада генерируется как имя каталога (например, "my_service") преобразованное в CamelCase и с добавлением "Facade".
     :param swagger_dict: Парсенный swagger (dict из JSON).
     :param base_output_dir: Путь к папке, куда будут записаны файлы (обычно http_clients/<service_name>).
     """
@@ -169,7 +175,6 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             else:
                 payload_type = None
 
-            # Обработка query-параметров (генерируем модель, если есть)
             if query_params:
                 query_schema = {"properties": {}, "required": []}
                 for qp in query_params:
@@ -211,7 +216,6 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    # Генерация клиентских классов по шаблону
     TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / "templates"
     endpoint_template_path = TEMPLATE_DIR / "django_template.j2"
     if not endpoint_template_path.exists():
@@ -220,7 +224,6 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
 
-    # Формируем список для импорта – объединяем имена моделей из definitions и inline-моделей
     imports_list = list(definitions.keys()) + list(inline_model_names)
 
     for tag, methods in endpoints_by_tag.items():
@@ -252,14 +255,15 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             "attribute_name": tag.lower()
         })
 
+    facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Facade"
+
     rendered_facade = facade_template.render(
         imports=facade_imports,
-        facade_class_name="ApiFacade"
+        facade_class_name=facade_class_name
     )
     FACADE_OUTPUT_FILE.write_text(rendered_facade, encoding="utf-8")
     print(f"[Django] Фасад сгенерирован в {FACADE_OUTPUT_FILE}")
 
-    # Записываем все сгенерированные модели в файл models.py
     rendered_models = Template(
         '''from __future__ import annotations
 from pydantic import BaseModel, Field
