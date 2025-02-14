@@ -167,9 +167,9 @@ from datetime import datetime, date
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
-    TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "templates"
-
+    TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / "templates"
     endpoint_template_path = TEMPLATE_DIR / "django_template.j2"
+
     if not endpoint_template_path.exists():
         raise FileNotFoundError(f"Файл шаблона {endpoint_template_path} не найден. Создайте его.")
 
