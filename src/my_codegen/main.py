@@ -88,13 +88,13 @@ def main():
         facade_gen.generate_facade(file_to_class, service_dir, facade_filename)
         logger.info("Local facade generated successfully.")
 
-        logger.info("Generating global facade (api_facade.py)...")
-        generate_app_facade(
-            template_name="app_facade.j2",
-            output_path="http_clients/api_facade.py",
-            base_dir="http_clients"
-        )
-        logger.info("Global facade generated successfully.")
+    logger.info("Generating global facade (api_facade.py)...")
+    generate_app_facade(
+        template_name="app_facade.j2",
+        output_path="http_clients/api_facade.py",
+        base_dir="http_clients"
+    )
+    logger.info("Global facade generated successfully.")
 
     logger.info(f"Running auto-format (autoflake, black) on '{service_dir}'...")
     ModelGenerator.post_process_code(base_output_dir)
