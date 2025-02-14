@@ -258,7 +258,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         })
 
     # Генерируем название фасада из имени каталога (в CamelCase) + "Facade"
-    facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Facade"
+    facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Api"
 
     rendered_facade = facade_template.render(
         imports=facade_imports,
