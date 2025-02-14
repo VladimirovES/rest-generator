@@ -175,6 +175,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             else:
                 payload_type = None
 
+            # Обработка query-параметров (генерируем модель, если есть)
             if query_params:
                 query_schema = {"properties": {}, "required": []}
                 for qp in query_params:
@@ -216,6 +217,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         tag = m.get("tag", "default")
         endpoints_by_tag.setdefault(tag, []).append(m)
 
+    # Генерация клиентских классов по шаблону
     TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / "templates"
     endpoint_template_path = TEMPLATE_DIR / "django_template.j2"
     if not endpoint_template_path.exists():
@@ -255,6 +257,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
             "attribute_name": tag.lower()
         })
 
+    # Генерируем название фасада из имени каталога (в CamelCase) + "Facade"
     facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Facade"
 
     rendered_facade = facade_template.render(
