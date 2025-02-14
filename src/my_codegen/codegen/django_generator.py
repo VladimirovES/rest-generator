@@ -23,10 +23,12 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     ответов (Response) и query-параметров (Query) в указанный каталог base_output_dir.
 
     Если для схемы задан $ref – используется существующая модель, иначе inline‑модель генерируется автоматически.
+    Глобальные параметры (на уровне пути) объединяются с параметрами операции.
 
-    Название фасада генерируется как имя каталога (например, "my_service") преобразованное в CamelCase и с добавлением "Facade".
+    Название фасада генерируется как имя каталога (например, "my_service") в CamelCase с добавлением "Facade".
+
     :param swagger_dict: Парсенный swagger (dict из JSON).
-    :param base_output_dir: Путь к папке, куда будут записаны файлы (обычно http_clients/<service_name>).
+    :param base_output_dir: Путь к каталогу, куда будут записаны файлы (например, http_clients/<service_name>).
     """
     info = swagger_dict.get("info", {})
     module_title = info.get("title", "module")
@@ -58,7 +60,6 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         prop_type = prop.get("type")
         prop_format = prop.get("format")
 
-        # Если тип - строка с форматом date-time или тип уже "date-time"
         if (prop_type == "string" and prop_format == "date-time") or (prop_type == "date-time"):
             return "datetime"
         if (prop_type == "string" and prop_format == "date") or (prop_type == "date"):
@@ -113,13 +114,18 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
 
     methods_list: List[Dict[str, Any]] = []
     paths = swagger_dict.get("paths", {})
-    http_methods = {"get", "post", "put", "delete", "patch"}
 
-    for path, methods in paths.items():
-        for method, details in methods.items():
+    # При обработке пути учитываем глобальные параметры, заданные на уровне пути
+    http_methods = {"get", "post", "put", "delete", "patch"}
+    for path, path_item in paths.items():
+        # Глобальные параметры для этого пути (если есть)
+        global_params = path_item.get("parameters", [])
+        for method, details in path_item.items():
             if method.lower() not in http_methods:
                 continue
-            parameters = details.get("parameters", [])
+            # Объединяем глобальные параметры с параметрами метода
+            parameters = global_params + details.get("parameters", [])
+            # Фильтруем по "in"
             path_params = [p for p in parameters if p.get("in") == "path"]
             body_params = [p for p in parameters if p.get("in") == "body"]
             query_params = [p for p in parameters if p.get("in") == "query"]
@@ -226,6 +232,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     endpoint_template_str = endpoint_template_path.read_text(encoding="utf-8")
     endpoint_template = Template(endpoint_template_str)
 
+    # Формируем список для импорта – объединяем имена моделей из definitions и inline-моделей
     imports_list = list(definitions.keys()) + list(inline_model_names)
 
     for tag, methods in endpoints_by_tag.items():
@@ -258,7 +265,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
         })
 
     # Генерируем название фасада из имени каталога (в CamelCase) + "Facade"
-    facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Api"
+    facade_class_name = f"{to_camel_case(Path(base_output_dir).name)}Facade"
 
     rendered_facade = facade_template.render(
         imports=facade_imports,
@@ -267,6 +274,7 @@ def generate_django_code(swagger_dict: Dict[str, Any], base_output_dir: str) -> 
     FACADE_OUTPUT_FILE.write_text(rendered_facade, encoding="utf-8")
     print(f"[Django] Фасад сгенерирован в {FACADE_OUTPUT_FILE}")
 
+    # Записываем все сгенерированные модели в файл models.py
     rendered_models = Template(
         '''from __future__ import annotations
 from pydantic import BaseModel, Field
