@@ -25,8 +25,6 @@ class UUIDEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
             return str(obj)
-        # if isinstance(obj, datetime):
-        #     return obj.isoformat()
         if isinstance(obj, Enum):
             return obj.value
 
