@@ -25,7 +25,7 @@ pip install git+https://github.com/liis-dev-team/api-client-generator.git
 
 ## Как использовать
 ```bash
-my-api-client my-api-client --swagger-url <URL_к_Swagger_JSON>
+my-api-client --swagger-url <URL_к_Swagger_JSON>
 my-api-client --swagger-url my-api-client --swagger-url <URL_к_Swagger_JSON> --django
 ```
 ### Структура, создаваемая в проекте
