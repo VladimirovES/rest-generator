@@ -13,7 +13,7 @@
 Установите пакет со всеми зависимостями через `pip`:
 
 ```bash
-pip install git+https://github.com/liis-dev-team/api-client-generator.git
+pip install git+https://github.com/liis-dev-team/api-client-generator.git@django-parse
 ```
 
 # Генерация случайных данных для Pydantic моделей
