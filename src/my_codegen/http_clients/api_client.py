@@ -2,7 +2,9 @@ import mimetypes
 import os
 import pprint
 from enum import Enum
-from typing import Union, Dict, List, Optional
+from typing import Union, Dict, List, Optional, Any
+
+from pydantic import BaseModel
 
 import allure
 import requests
@@ -16,7 +18,9 @@ import json
 import uuid
 
 from my_codegen.utils.base_url import BaseUrlSingleton
-from my_codegen.utils.logger import allure_report
+from my_codegen.utils.logger import allure_report, ApiRequestError, logger
+
+from my_codegen.utils.report_utils import Reporter
 
 load_dotenv()
 
@@ -56,26 +60,43 @@ class RequestHandler:
             headers["Authorization"] = f"Bearer {self.auth_token}"
         return headers
 
+    def _process_payload(self, payload: Any) -> Optional[str]:
+        """
+        Обрабатывает payload разных типов и конвертирует в JSON строку
+        """
+        if payload is None:
+            return None
+
+        if isinstance(payload, BaseModel):
+            return payload.model_dump_json()
+
+        if isinstance(payload, list) and payload and isinstance(payload[0], BaseModel):
+            from pydantic import RootModel
+            ListModel = RootModel[List[type(payload[0])]]
+            return ListModel(payload).model_dump_json()
+
+        return json.dumps(payload, cls=UUIDEncoder)
+
     def prepare_request(
             self,
             method: str,
             url: str,
-            payload: Optional[Dict] = None,
+            payload: Optional[Any] = None,
             headers: Optional[Dict] = None,
             params: Optional[Dict] = None,
             files: Optional[Dict] = None,
+            data: Optional[Union[bytes, str]] = None
     ) -> requests.PreparedRequest:
 
         headers = self._add_authorization_header(headers)
+        
+        if files or data is not None:
+            pass
+        elif "Content-Type" not in headers:
+            headers["Content-Type"] = "application/json"
 
-        if "Content-Type" not in headers:
-            if not files:
-                headers["Content-Type"] = "application/json"
-
-        if payload is not None and not files:
-            data = json.dumps(payload, cls=UUIDEncoder)
-        else:
-            data = None
+        if data is None and payload is not None and not files:
+            data = self._process_payload(payload)
 
         request = requests.Request(
             method=method,
@@ -88,14 +109,10 @@ class RequestHandler:
         return request.prepare()
 
     def send_request(
-            self, prepared_request: requests.PreparedRequest, path: str
+            self,
+            prepared_request: requests.PreparedRequest, path: str
     ) -> requests.Response:
         response = self.session.send(prepared_request)
-        with allure.step(f'<{prepared_request.method}> {path}'):
-            allure_report(
-                response=response,
-                payload=prepared_request.body
-            )
         return response
 
     def validate_response(
@@ -106,17 +123,7 @@ class RequestHandler:
             payload: Optional[Dict] = None,
     ):
         if expected_status and response.status_code != expected_status.value:
-            response_text = response.text[:2000]
-            payload_str = pprint.pformat(payload) if payload else ""
-            error_message = (
-                f"Expected status: {expected_status}, actual status: {response.status_code}.\n"
-                f"Method: {method}\n"
-                f"URL: {response.url}\n"
-                f"response: {response_text},"
-                f"headers: {response.request.headers}"
-                f"payload: {payload_str}\n"
-            )
-            raise AssertionError(error_message)
+            raise ApiRequestError(response, expected_status, method, payload)
 
     def process_response(
             self, response: requests.Response
@@ -149,6 +156,7 @@ class ApiClient:
             headers: Optional[Dict] = None,
             params: Optional[Dict] = None,
             files: Optional[Dict] = None,
+            data: Optional[Union[bytes, str]] = None,
             expected_status: Optional[HTTPStatus] = None,
             **kwargs,
     ) -> Union[Dict, List, bytes, None]:
@@ -157,13 +165,15 @@ class ApiClient:
         url = f"{self.base_url}{formatted_path}"
 
         prepared_request = self._request_handler.prepare_request(
-            method, url, payload, headers, params, files
+            method, url, payload, headers, params, files, data
         )
         response = self._request_handler.send_request(prepared_request, path)
 
         self._request_handler.validate_response(
             response, expected_status, method, payload or params
         )
+        logger.info(f'{response.status_code} | {method} | {formatted_path}')
+
         return self._request_handler.process_response(response)
 
     def _get(
@@ -186,7 +196,7 @@ class ApiClient:
     def _post(
             self,
             path: str,
-            payload: Optional[Union[Dict, List]] = None,
+            payload: Optional[Any] = None,
             headers: Optional[Dict] = None,
             files: Optional[Dict] = None,
             expected_status: HTTPStatus = HTTPStatus.CREATED,
@@ -205,7 +215,7 @@ class ApiClient:
     def _put(
             self,
             path: str = "",
-            payload: Optional[Union[Dict, List]] = None,
+            payload: Optional[Any] = None,
             params: Optional[Dict] = None,
             headers: Optional[Dict] = None,
             files: Optional[Dict] = None,
@@ -226,7 +236,7 @@ class ApiClient:
     def _patch(
             self,
             path: str,
-            payload: Optional[Union[Dict, List]] = None,
+            payload: Optional[Any] = None,
             params: Optional[Dict] = None,
             headers: Optional[Dict] = None,
             expected_status: HTTPStatus = HTTPStatus.OK,
@@ -247,7 +257,7 @@ class ApiClient:
             path: str,
             headers: Optional[Dict] = None,
             params: Optional[Dict] = None,
-            payload: Optional[Union[Dict, List]] = None,
+            payload: Optional[Any] = None,
             expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
             **kwargs,
     ) -> Union[Dict, List]:
@@ -275,6 +285,26 @@ class StorageS3(ApiClient):
         with open(file_path, "rb") as f:
             files = {"file": (os.path.basename(file_path), f, mime_type)}
             return self._put(files=files)
+
+    def upload(self, file_path: str):
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+            headers = {
+                "Content-Type": mime_type,
+                "Content-Length": str(os.path.getsize(file_path))
+            }
+            return self._put(
+                path="",
+                payload=None,  # Important: don't send as JSON payload
+                headers=headers,
+                files=None,  # Don't use files parameter for S3 direct upload
+                data=file_content,  # Send raw file content
+                expected_status=HTTPStatus.OK
+            )
 
     def download(self):
         return self._get(path="")

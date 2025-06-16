@@ -36,3 +36,6 @@ ruff==0.8.4
 six==1.17.0
 typing_extensions==4.12.2
 urllib3==2.3.0
+testit-adapter-pytest==3.5.5.post530
+testit-api-client==6.0.1.post530
+testit-python-commons==3.5.5.post530
