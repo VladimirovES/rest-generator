@@ -13,7 +13,7 @@
 Установите пакет со всеми зависимостями через `pip`:
 
 ```bash
-pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-generator.git@update
+pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-generator.git@master
 ```
 
 # Генерация случайных данных для Pydantic моделей
