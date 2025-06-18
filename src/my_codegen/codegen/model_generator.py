@@ -21,11 +21,74 @@ class ModelGenerator:
             "--use-title-as-name",
             "--use-schema-description",
             "--collapse-root-models",
+            "--disable-appending-item-suffix",  
             "--target-python-version 3.9",
             "--output-model-type pydantic_v2.BaseModel",
             "--use-annotated"
         ]
         run_command(" ".join(cmd_parts))
+        self._fix_root_models()  
+
+    def _fix_root_models(self) -> None:
+        """Заменяет простые RootModel на type aliases"""
+        if not os.path.exists(self.models_path):
+            return
+
+        with open(self.models_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Паттерн для поиска простых RootModel с одним полем root
+        pattern = r'class (\w+)\(RootModel\[([^\]]+)\]\):\s*\n\s*root: (Annotated\[[^\]]+\])'
+
+        def replacement(match):
+            class_name = match.group(1)
+            annotated_type = match.group(3)
+            return f'{class_name} = {annotated_type}'
+
+        # Заменяем RootModel на type aliases
+        original_content = content
+        content = re.sub(pattern, replacement, content)
+
+        # Если были замены и RootModel больше не используется, убираем импорт
+        if content != original_content and 'RootModel' not in content:
+            content = self._remove_rootmodel_import(content)
+
+        with open(self.models_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def _remove_rootmodel_import(self, content: str) -> str:
+        """Убирает импорт RootModel из файла"""
+        # Убираем RootModel из строк импорта
+        lines = content.split('\n')
+        new_lines = []
+
+        for line in lines:
+            if line.strip().startswith("from pydantic import"):
+                cleaned_line = self._clean_rootmodel_from_import(line)
+                if cleaned_line:
+                    new_lines.append(cleaned_line)
+            else:
+                new_lines.append(line)
+
+        return '\n'.join(new_lines)
+
+    def _clean_rootmodel_from_import(self, line: str) -> str:
+        """Убирает RootModel из строки импорта pydantic"""
+        prefix = "from pydantic import "
+        if not line.strip().startswith(prefix):
+            return line
+
+        after_import = line.strip()[len(prefix):]
+        imports_list = [imp.strip() for imp in after_import.split(",")]
+        filtered_imports = [
+            imp for imp in imports_list
+            if imp != "RootModel"
+        ]
+
+        if not filtered_imports:
+            return ""  # Убираем всю строку если импортов не осталось
+
+        return f"{prefix}{', '.join(filtered_imports)}"
 
     def fix_models_inheritance(self) -> None:
         """Заменяет BaseModel на BaseConfigModel и фиксит импорты"""
@@ -60,7 +123,7 @@ class ModelGenerator:
         for line in lines:
             if line.strip().startswith("from pydantic import"):
                 cleaned_line = self._clean_pydantic_import(line)
-                if cleaned_line:  
+                if cleaned_line:
                     new_lines.append(cleaned_line)
             else:
                 new_lines.append(line)
@@ -79,7 +142,7 @@ class ModelGenerator:
         ]
 
         if not filtered_imports:
-            return ""  
+            return ""
 
         return f"{prefix}{', '.join(filtered_imports)}\n"
 
