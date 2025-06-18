@@ -9,7 +9,7 @@ from typing import (
 from uuid import UUID, uuid4
 
 from faker import Faker
-from pydantic import Field, StringConstraints, RootModel, BaseModel
+from pydantic import Field, RootModel, BaseModel
 
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
@@ -351,14 +351,29 @@ class AnnotatedGenerator(BaseGenerator):
         min_len, max_len = 1, 20
 
         for meta in metadata:
-            if isinstance(meta, (Field, StringConstraints)):
+            try:
                 if hasattr(meta, 'min_length') and meta.min_length is not None:
-                    min_len = meta.min_length
+                    min_len = max(1, int(meta.min_length))
                 if hasattr(meta, 'max_length') and meta.max_length is not None:
-                    max_len = meta.max_length
+                    max_len = max(1, int(meta.max_length))
 
-        length = random.randint(min_len, max_len) if min_len <= max_len else 1
-        return fake.pystr(min_chars=length, max_chars=length)
+                # Если есть constraints, проверяем и их
+                if hasattr(meta, 'constraints') and meta.constraints:
+                    constraints = meta.constraints
+                    if hasattr(constraints, 'min_length') and constraints.min_length is not None:
+                        min_len = max(1, int(constraints.min_length))
+                    if hasattr(constraints, 'max_length') and constraints.max_length is not None:
+                        max_len = max(1, int(constraints.max_length))
+            except (ValueError, TypeError, AttributeError):
+                continue
+
+        # Проверяем корректность диапазона
+        if min_len > max_len:
+            min_len = 1
+            max_len = 20
+
+        target_length = random.randint(min_len, max_len)
+        return fake.pystr(min_chars=target_length, max_chars=target_length)
 
 
 class SpecialTypeGenerator(BaseGenerator):
