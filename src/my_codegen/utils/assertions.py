@@ -171,7 +171,6 @@ class Expect:
         """Выполняет проверку с логированием."""
         message_step = f'Проверка: "{self._name}" {expectation}'
 
-        logger.info(message_step)
         with Reporter.step(message_step):
             if self._negated:
                 condition = not condition
