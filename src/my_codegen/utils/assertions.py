@@ -43,7 +43,6 @@ class Expect:
                 return f"{{dict with {len(value)} keys}} Sample keys: {keys}"
             return str(value)
         elif hasattr(value, '__class__') and hasattr(value, '__dict__'):
-            # Это пользовательский объект
             class_name = value.__class__.__name__
             if hasattr(value, 'id'):
                 return f"{class_name}(id={getattr(value, 'id')})"
@@ -54,7 +53,6 @@ class Expect:
     def _fail(self, message: str, expected: Any = None):
         negation = "NOT " if self._negated else ""
 
-        # Убираем дублирование - если message уже содержит имя, не добавляем его снова
         if self._name in message:
             full_message = message
         else:
@@ -273,7 +271,7 @@ class Expect:
         is_sorted = all(values[i] <= values[i + 1] for i in range(len(values) - 1))
 
         if not is_sorted:
-            # Находим первое нарушение
+            
             violation_idx = next((i for i in range(len(values) - 1) if values[i] > values[i + 1]), None)
             violation_info = f"violation at index {violation_idx}: {values[violation_idx]} > {values[violation_idx + 1]}"
             preview = values[:10] + ["..."] if len(values) > 10 else values
@@ -345,7 +343,6 @@ class Expect:
                 comparison = "<"
 
             if not is_sorted:
-                # Находим первое нарушение порядка
                 violation_idx = None
                 for i in range(len(values) - 1):
                     if asc and values[i] > values[i + 1]:
@@ -356,13 +353,11 @@ class Expect:
                         break
 
                 if violation_idx is not None:
-                    # Форматируем значения в зависимости от типа
                     val1 = self._format_value(values[violation_idx])
                     val2 = self._format_value(values[violation_idx + 1])
 
                     violation_info = f"violation at index {violation_idx}: {val1} {comparison} {val2}"
 
-                    # Показываем превью значений поля (не полных объектов)
                     preview_values = []
                     for v in values[:10]:
                         preview_values.append(self._format_value(v))
