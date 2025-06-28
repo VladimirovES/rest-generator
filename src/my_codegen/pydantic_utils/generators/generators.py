@@ -1,9 +1,13 @@
 """Конкретные реализации генераторов для различных типов данных."""
 
 import random
-from datetime import datetime, timedelta
-from typing import Any, Optional, List, Dict, Set, Union, get_args, get_origin, Annotated, ForwardRef
-from uuid import uuid4
+from datetime import datetime, date, timedelta
+from typing import (
+    Any, List, Dict, Union, Set, Type, Callable, Optional,
+    get_args, get_origin, ForwardRef, Annotated
+)
+from uuid import UUID, uuid4
+
 
 from faker import Faker
 from pydantic import Field, RootModel
