@@ -6,3 +6,4 @@ class BaseConfigModel(BaseModel):
         extra = 'forbid'
         use_enum_values = True
         validate_assignment = True
+        arbitrary_types_allowed = True
