@@ -7,8 +7,9 @@ from typing import Any
 from faker import Faker
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
-from .type_utils import TypeUtils
-from .value_generator import ValueGenerator, RandomValueGenerator
+from my_codegen.pydantic_utils.generators.type_utils import TypeUtils 
+from my_codegen.pydantic_utils.generators.value_generator import ValueGenerator, RandomValueGenerator 
+
 
 fake = Faker()
 __all__ = ['GenerateData', 'RandomValueGenerator', 'fake']
