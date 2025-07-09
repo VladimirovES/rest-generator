@@ -181,14 +181,7 @@ class ModelGenerator:
         ]
         run_command(" ".join(cmd_parts))
 
-        cmd_parts = [
-            "autoflake",
-            "--remove-all-unused-imports",
-            "--recursive",
-            "--in-place",
-            f"'{output_dir}'"
-        ]
-        run_command(" ".join(cmd_parts))
+        run_command(f"black '{output_dir}'")
 
     # def _run_autoflake(self, output_dir: str) -> None:
     #     """Убирает неиспользуемые импорты"""
