@@ -176,7 +176,7 @@ class ReturnStatementBuilder:
         if inner_type in {'str', 'int', 'float', 'bool', 'Any'}:
             return f"return [item for item in r_json] {condition}"
         else:
-            return f"return [{inner_type}(**item)(**r_json).model_dump_json() for item in r_json] {condition}"
+            return f"return [{inner_type}(**item)(**r_json) for item in r_json] {condition}"
 
     def _build_primitive_return(self, condition: str) -> str:
         """Primitive type return"""
@@ -184,7 +184,7 @@ class ReturnStatementBuilder:
 
     def _build_model_return(self, condition: str) -> str:
         """Model return"""
-        return f"return {self.endpoint.return_type}(**r_json).model_dump_json() {condition}"
+        return f"return {self.endpoint.return_type}(**r_json) {condition}"
 
     def _is_primitive_type(self) -> bool:
         return self.endpoint.return_type in {'str', 'int', 'float', 'bool'}

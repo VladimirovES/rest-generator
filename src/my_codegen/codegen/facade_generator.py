@@ -31,8 +31,6 @@ class FacadeGenerator:
             docstring_indent=" "
         )
 
-        # self._write_facade_file(rendered, output_dir, file_name)
-
         facade_path = os.path.join(output_dir, file_name)
         with open(facade_path, "w", encoding="utf-8") as f:
             f.write(rendered)
@@ -54,9 +52,3 @@ class FacadeGenerator:
             ))
 
         return imports_data
-
-    # def _write_facade_file(self, rendered: str, output_dir: str, file_name: str) -> None:
-    #     """Записывает файл фасада"""
-    #     facade_path = os.path.join(output_dir, file_name)
-    #     with open(facade_path, "w", encoding="utf-8") as f:
-    #         f.write(rendered)
