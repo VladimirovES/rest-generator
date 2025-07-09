@@ -1,5 +1,3 @@
-"""Утилиты для анализа и работы с типами."""
-
 from typing import Any, Union, List, Dict, Set, ForwardRef, Annotated, get_args, get_origin
 from enum import Enum
 from pydantic import BaseModel, RootModel

@@ -1,4 +1,3 @@
-"""Главный генератор значений с цепочкой ответственности."""
 
 import random
 from typing import Any, Optional, List, get_args, Annotated

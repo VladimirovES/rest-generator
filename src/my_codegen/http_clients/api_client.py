@@ -25,16 +25,6 @@ from my_codegen.utils.report_utils import Reporter
 load_dotenv()
 
 
-class UUIDEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        if isinstance(obj, Enum):
-            return obj.value
-
-        return super().default(obj)
-
-
 class RequestHandler:
     def __init__(self, auth_token: Optional[str] = None):
         self.auth_token = auth_token
@@ -75,8 +65,6 @@ class RequestHandler:
             ListModel = RootModel[List[type(payload[0])]]
             return ListModel(payload).model_dump_json()
 
-        return json.dumps(payload, cls=UUIDEncoder)
-
     def prepare_request(
             self,
             method: str,
@@ -89,7 +77,7 @@ class RequestHandler:
     ) -> requests.PreparedRequest:
 
         headers = self._add_authorization_header(headers)
-        
+
         if files or data is not None:
             pass
         elif "Content-Type" not in headers:
@@ -276,15 +264,6 @@ class StorageS3(ApiClient):
     def __init__(self, url: str):
         super().__init__(auth_token=None, base_url=url)
         self.base_url = url
-
-    def upload(self, file_path: str):
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if mime_type is None:
-            mime_type = "application/octet-stream"
-
-        with open(file_path, "rb") as f:
-            files = {"file": (os.path.basename(file_path), f, mime_type)}
-            return self._put(files=files)
 
     def upload(self, file_path: str):
         mime_type, _ = mimetypes.guess_type(file_path)

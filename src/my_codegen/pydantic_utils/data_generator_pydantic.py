@@ -1,8 +1,3 @@
-"""
-Главный модуль для генерации данных Pydantic моделей.
-Сохраняет обратную совместимость с существующим кодом.
-"""
-
 from typing import Any
 from faker import Faker
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel

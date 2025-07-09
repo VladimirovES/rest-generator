@@ -1,5 +1,3 @@
-"""Конфигурация для умной генерации полей на основе их имен."""
-
 import random
 from faker import Faker
 
@@ -7,11 +5,9 @@ fake = Faker()
 
 
 class SmartFieldConfig:
-    """Конфигурация для умной генерации полей"""
+    """Конфигурация генерации полей с faker"""
 
-    # Точные совпадения имен полей
     EXACT_MAPPINGS = {
-        # Персональные данные
         'first_name': lambda: fake.first_name(),
         'last_name': lambda: fake.last_name(),
         'middle_name': lambda: fake.first_name(),

@@ -93,7 +93,6 @@ class ContainerGenerator(BaseGenerator):
         origin = get_origin(field_type)
         args = get_args(field_type)
 
-        # Импортируем здесь чтобы избежать циклических импортов
         from .value_generator import ValueGenerator
 
         if origin in (list, List):
@@ -152,7 +151,6 @@ class PydanticModelGenerator(BaseGenerator):
             return self._generate_pydantic_model(field_type, current_depth, max_depth)
 
     def _generate_root_model(self, field_type: Any, current_depth: int, max_depth: int) -> Any:
-        # Импортируем здесь чтобы избежать циклических импортов
         from .value_generator import ValueGenerator
 
         root_annotation = field_type.model_fields["root"].annotation
@@ -160,7 +158,6 @@ class PydanticModelGenerator(BaseGenerator):
         return field_type.model_construct(root=generated, _fields_set={"root"})
 
     def _generate_pydantic_model(self, field_type: Any, current_depth: int, max_depth: int) -> Any:
-        # Импортируем здесь чтобы избежать циклических импортов
         from .data_generator_pydantic import GenerateData
 
         if current_depth >= max_depth:
@@ -189,7 +186,6 @@ class AnnotatedGenerator(BaseGenerator):
         if base_type is str:
             return self._handle_string_constraints(metadata)
 
-        # Импортируем здесь чтобы избежать циклических импортов
         from .value_generator import ValueGenerator
         return ValueGenerator.generate(base_type, field_name, current_depth, max_depth)
 
@@ -243,7 +239,6 @@ class SpecialTypeGenerator(BaseGenerator):
         field_str = str(field_type)
         field_name_str = getattr(field_type, '__name__', field_str)
 
-        # Маппинг специальных типов
         type_mappings = {
             'url': fake.url,
             'email': fake.email,

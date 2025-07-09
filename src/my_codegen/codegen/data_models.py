@@ -111,7 +111,6 @@ class HttpCallBuilder:
         method = self.endpoint.http_method.lower()
         call_parts = ["path=self._service + path"]
 
-        # Добавляем payload
         payload_parts = self._build_payload_parts()
         if payload_parts:
             call_parts.extend(payload_parts)
@@ -175,9 +174,9 @@ class ReturnStatementBuilder:
         inner_type = self.endpoint.return_type[5:-1]
 
         if inner_type in {'str', 'int', 'float', 'bool', 'Any'}:
-            return f"return [{inner_type}(item) for item in r_json] {condition}"
+            return f"return [item for item in r_json] {condition}"
         else:
-            return f"return [{inner_type}(**item) for item in r_json] {condition}"
+            return f"return [{inner_type}(**item)(**r_json).model_dump_json() for item in r_json] {condition}"
 
     def _build_primitive_return(self, condition: str) -> str:
         """Primitive type return"""
@@ -185,7 +184,7 @@ class ReturnStatementBuilder:
 
     def _build_model_return(self, condition: str) -> str:
         """Model return"""
-        return f"return {self.endpoint.return_type}(**r_json) {condition}"
+        return f"return {self.endpoint.return_type}(**r_json).model_dump_json() {condition}"
 
     def _is_primitive_type(self) -> bool:
         return self.endpoint.return_type in {'str', 'int', 'float', 'bool'}

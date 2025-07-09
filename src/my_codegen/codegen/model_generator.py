@@ -37,7 +37,6 @@ class ModelGenerator:
         with open(self.models_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Паттерн для поиска простых RootModel с одним полем root
         pattern = r'class (\w+)\(RootModel\[([^\]]+)\]\):\s*\n\s*root: (Annotated\[[^\]]+\])'
 
         def replacement(match):
@@ -45,11 +44,9 @@ class ModelGenerator:
             annotated_type = match.group(3)
             return f'{class_name} = {annotated_type}'
 
-        # Заменяем RootModel на type aliases
         original_content = content
         content = re.sub(pattern, replacement, content)
 
-        # Если были замены и RootModel больше не используется, убираем импорт
         if content != original_content and 'RootModel' not in content:
             content = self._remove_rootmodel_import(content)
 
@@ -58,7 +55,6 @@ class ModelGenerator:
 
     def _remove_rootmodel_import(self, content: str) -> str:
         """Убирает импорт RootModel из файла"""
-        # Убираем RootModel из строк импорта
         lines = content.split('\n')
         new_lines = []
 
@@ -99,17 +95,20 @@ class ModelGenerator:
         lines = self._replace_base_model(lines)
         lines = self._fix_pydantic_imports(lines)
         lines = self._add_config_import_if_needed(lines)
-        self._write_file(lines)
+        # self._write_file(lines)
+        
+        with open(self.models_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
 
     def _read_file(self) -> List[str]:
         """Читает файл моделей"""
         with open(self.models_path, 'r', encoding='utf-8') as f:
             return f.readlines()
 
-    def _write_file(self, lines: List[str]) -> None:
-        """Записывает файл моделей"""
-        with open(self.models_path, 'w', encoding='utf-8') as f:
-            f.writelines(lines)
+    # def _write_file(self, lines: List[str]) -> None:
+        # """Записывает файл моделей"""
+        # with open(self.models_path, 'w', encoding='utf-8') as f:
+        #     f.writelines(lines)
 
     def _replace_base_model(self, lines: List[str]) -> List[str]:
         """Заменяет BaseModel на BaseConfigModel"""
@@ -172,11 +171,6 @@ class ModelGenerator:
         return last_import_index
 
     def post_process_code(self, output_dir: str) -> None:
-        """Форматирует код через autoflake и black"""
-        self._run_autoflake(output_dir)
-        self._run_black(output_dir)
-
-    def _run_autoflake(self, output_dir: str) -> None:
         """Убирает неиспользуемые импорты"""
         cmd_parts = [
             "autoflake",
@@ -187,6 +181,26 @@ class ModelGenerator:
         ]
         run_command(" ".join(cmd_parts))
 
-    def _run_black(self, output_dir: str) -> None:
-        """Форматирует код"""
-        run_command(f"black '{output_dir}'")
+        cmd_parts = [
+            "autoflake",
+            "--remove-all-unused-imports",
+            "--recursive",
+            "--in-place",
+            f"'{output_dir}'"
+        ]
+        run_command(" ".join(cmd_parts))
+
+    # def _run_autoflake(self, output_dir: str) -> None:
+    #     """Убирает неиспользуемые импорты"""
+    #     cmd_parts = [
+    #         "autoflake",
+    #         "--remove-all-unused-imports",
+    #         "--recursive",
+    #         "--in-place",
+    #         f"'{output_dir}'"
+    #     ]
+    #     run_command(" ".join(cmd_parts))
+    # 
+    # def _run_black(self, output_dir: str) -> None:
+    #     """Форматирует код"""
+    #     run_command(f"black '{output_dir}'")
