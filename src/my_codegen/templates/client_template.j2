@@ -14,7 +14,7 @@ class {{ class_name }}(ApiClient):
         {% if method.optional_params %}{{ method.optional_params | join(',\n        ') }},{% endif %}
         headers: Optional[Dict[str, str]] = None,
         expected_status: HTTPStatus = HTTPStatus.{{ method.expected_status }}) -> {{ method.return_type }}:
-        
+        """{{ method.description }}"""
         path = f"{{ method.path }}"
         {{ method.http_call }}
         {{ method.return_statement }}
