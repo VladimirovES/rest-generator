@@ -206,6 +206,7 @@ class MethodContext:
 
     name: str
     description: str
+    summary :str
     path: str
     return_type: str
     expected_status: str
@@ -221,10 +222,11 @@ class MethodContext:
         param_builder = ParameterBuilder(endpoint)
         http_builder = HttpCallBuilder(endpoint)
         return_builder = ReturnStatementBuilder(endpoint)
-
+        
         return cls(
             name=endpoint.name,
             description=endpoint.description,
+            summary=endpoint.summary,
             path=endpoint.path,
             return_type=endpoint.return_type,
             expected_status=endpoint.expected_status,

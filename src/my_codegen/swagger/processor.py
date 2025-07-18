@@ -46,11 +46,6 @@ class SwaggerProcessor:
 
         expected_status, return_type = self._extract_response_info(operation.responses)
 
-        print(f"=== DEBUG для {path} {http_method} ===")
-        print(f"operation.summary: '{operation.summary}'")
-        print(f"operation.description: '{operation.description}'")
-        print(f"operation dict: {operation.model_dump()}")
-
         return Endpoint(
             tag=tag,
             name=self._determine_method_name(http_method, path, operation),
