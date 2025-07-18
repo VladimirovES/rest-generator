@@ -21,6 +21,8 @@ class Endpoint:
     expected_status: str = "OK"
     return_type: str = "Any"
     description: str = ""
+    summary: str = ""
+
 
     @property
     def sanitized_path(self) -> str:
