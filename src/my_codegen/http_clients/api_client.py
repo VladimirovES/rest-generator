@@ -44,7 +44,7 @@ class RequestHandler:
         self.session.mount("https://", adapter)
 
     def _add_authorization_header(
-            self, headers: Optional[Dict[str, str]] = None
+        self, headers: Optional[Dict[str, str]] = None
     ) -> Dict[str, str]:
         headers = headers or {}
         if self.auth_token:
@@ -63,18 +63,19 @@ class RequestHandler:
 
         if isinstance(payload, list) and payload and isinstance(payload[0], BaseModel):
             from pydantic import RootModel
+
             ListModel = RootModel[List[type(payload[0])]]
             return ListModel(payload).model_dump_json()
 
     def prepare_request(
-            self,
-            method: str,
-            url: str,
-            payload: Optional[Any] = None,
-            headers: Optional[Dict] = None,
-            params: Optional[Dict] = None,
-            files: Optional[Dict] = None,
-            data: Optional[Union[bytes, str]] = None
+        self,
+        method: str,
+        url: str,
+        payload: Optional[Any] = None,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        files: Optional[Dict] = None,
+        data: Optional[Union[bytes, str]] = None,
     ) -> requests.PreparedRequest:
 
         headers = self._add_authorization_header(headers)
@@ -98,28 +99,27 @@ class RequestHandler:
         return request.prepare()
 
     def send_request(
-            self,
-            prepared_request: requests.PreparedRequest, path: str
+        self, prepared_request: requests.PreparedRequest, path: str
     ) -> requests.Response:
         response = self.session.send(prepared_request)
         return response
 
     def validate_response(
-            self,
-            response: requests.Response,
-            expected_status: Optional[HTTPStatus],
-            method: str,
-            payload: Optional[Dict] = None,
+        self,
+        response: requests.Response,
+        expected_status: Optional[HTTPStatus],
+        method: str,
+        payload: Optional[Dict] = None,
     ):
         if response.status_code != expected_status.value:
             raise ApiRequestError(response, expected_status, method, payload)
 
     def process_response(
-            self, response: requests.Response
+        self, response: requests.Response
     ) -> Union[Dict, List, bytes, str, None]:
         try:
             if "application/pdf" in response.headers.get(
-                    "Content-Type", ""
+                "Content-Type", ""
             ) or "bytes" in response.headers.get("Accept-Ranges", ""):
                 return response.content
             if response.status_code == HTTPStatus.NO_CONTENT:
@@ -131,23 +131,23 @@ class RequestHandler:
 
 class ApiClient:
     def __init__(
-            self, auth_token: Optional[str] = None, base_url: Optional[str] = None
+        self, auth_token: Optional[str] = None, base_url: Optional[str] = None
     ):
         self.base_url = base_url if base_url else BaseUrlSingleton.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
 
     def _send_request(
-            self,
-            method: str,
-            path: str,
-            payload: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
-            params: Optional[Dict] = None,
-            files: Optional[Dict] = None,
-            data: Optional[Union[bytes, str]] = None,
-            expected_status: Optional[HTTPStatus] = None,
-            **kwargs,
+        self,
+        method: str,
+        path: str,
+        payload: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        files: Optional[Dict] = None,
+        data: Optional[Union[bytes, str]] = None,
+        expected_status: Optional[HTTPStatus] = None,
+        **kwargs,
     ) -> Union[Dict, List, bytes, None]:
         formatted_path = path.format(**kwargs)
 
@@ -161,17 +161,17 @@ class ApiClient:
         self._request_handler.validate_response(
             response, expected_status, method, payload or params
         )
-        logger.info(f'{response.status_code} | {method} | {formatted_path}')
+        logger.info(f"{response.status_code} | {method} | {formatted_path}")
 
         return self._request_handler.process_response(response)
 
     def _get(
-            self,
-            path: str,
-            headers: Optional[Dict] = None,
-            params: Optional[Dict] = None,
-            expected_status: HTTPStatus = HTTPStatus.OK,
-            **kwargs,
+        self,
+        path: str,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        expected_status: HTTPStatus = HTTPStatus.OK,
+        **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "GET",
@@ -183,13 +183,13 @@ class ApiClient:
         )
 
     def _post(
-            self,
-            path: str,
-            payload: Optional[Any] = None,
-            headers: Optional[Dict] = None,
-            files: Optional[Dict] = None,
-            expected_status: HTTPStatus = HTTPStatus.CREATED,
-            **kwargs,
+        self,
+        path: str,
+        payload: Optional[Any] = None,
+        headers: Optional[Dict] = None,
+        files: Optional[Dict] = None,
+        expected_status: HTTPStatus = HTTPStatus.CREATED,
+        **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "POST",
@@ -202,14 +202,14 @@ class ApiClient:
         )
 
     def _put(
-            self,
-            path: str = "",
-            payload: Optional[Any] = None,
-            params: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
-            files: Optional[Dict] = None,
-            expected_status: HTTPStatus = HTTPStatus.OK,
-            **kwargs,
+        self,
+        path: str = "",
+        payload: Optional[Any] = None,
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        files: Optional[Dict] = None,
+        expected_status: HTTPStatus = HTTPStatus.OK,
+        **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "PUT",
@@ -223,13 +223,13 @@ class ApiClient:
         )
 
     def _patch(
-            self,
-            path: str,
-            payload: Optional[Any] = None,
-            params: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
-            expected_status: HTTPStatus = HTTPStatus.OK,
-            **kwargs,
+        self,
+        path: str,
+        payload: Optional[Any] = None,
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        expected_status: HTTPStatus = HTTPStatus.OK,
+        **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "PATCH",
@@ -242,13 +242,13 @@ class ApiClient:
         )
 
     def _delete(
-            self,
-            path: str,
-            headers: Optional[Dict] = None,
-            params: Optional[Dict] = None,
-            payload: Optional[Any] = None,
-            expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
-            **kwargs,
+        self,
+        path: str,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        payload: Optional[Any] = None,
+        expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
+        **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "DELETE",
@@ -259,32 +259,3 @@ class ApiClient:
             expected_status=expected_status,
             **kwargs,
         )
-
-
-class StorageS3(ApiClient):
-    def __init__(self, url: str):
-        super().__init__(auth_token=None, base_url=url)
-        self.base_url = url
-
-    def upload(self, file_path: str):
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if mime_type is None:
-            mime_type = "application/octet-stream"
-
-        with open(file_path, "rb") as f:
-            file_content = f.read()
-            headers = {
-                "Content-Type": mime_type,
-                "Content-Length": str(os.path.getsize(file_path))
-            }
-            return self._put(
-                path="",
-                payload=None,  # Important: don't send as JSON payload
-                headers=headers,
-                files=None,  # Don't use files parameter for S3 direct upload
-                data=file_content,  # Send raw file content
-                expected_status=HTTPStatus.OK
-            )
-
-    def download(self):
-        return self._get(path="")

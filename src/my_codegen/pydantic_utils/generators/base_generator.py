@@ -13,7 +13,12 @@ class BaseGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate(self, field_type: Any, field_name: Optional[str] = None,
-                 current_depth: int = 0, max_depth: int = 5) -> Any:
+    def generate(
+        self,
+        field_type: Any,
+        field_name: Optional[str] = None,
+        current_depth: int = 0,
+        max_depth: int = 5,
+    ) -> Any:
         """Генерирует значение для типа"""
         pass

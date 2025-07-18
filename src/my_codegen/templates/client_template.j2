@@ -13,7 +13,7 @@ class {{ class_name }}(ApiClient):
         {% if method.required_params %}{{ method.required_params | join(',\n        ') }},{% endif %}
         {% if method.optional_params %}{{ method.optional_params | join(',\n        ') }},{% endif %}
         headers: Optional[Dict[str, str]] = None,
-        expect_status: HTTPStatus = HTTPStatus.{{ method.expected_status }}) -> {{ method.return_type }}:
+        expected_status: HTTPStatus = HTTPStatus.{{ method.expected_status }}) -> {{ method.return_type }}:
         
         path = f"{{ method.path }}"
         {{ method.http_call }}

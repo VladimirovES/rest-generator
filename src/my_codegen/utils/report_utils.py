@@ -17,9 +17,9 @@ class Reporter:
             @testit.externalId(title_text)
             @wraps(func)
             def wrapper(*args, **kwargs):
-                logger.info("="* 100)
+                logger.info("=" * 100)
                 logger.info(f"Начало теста: '{title_text}'")
-                logger.info("-"* 100)
+                logger.info("-" * 100)
 
                 try:
                     result = func(*args, **kwargs)
@@ -92,7 +92,9 @@ class Reporter:
 
     @staticmethod
     def message(message_text):
-        allure.attach(message_text, "Информация", attachment_type=allure.attachment_type.TEXT)
+        allure.attach(
+            message_text, "Информация", attachment_type=allure.attachment_type.TEXT
+        )
         testit.addMessage(message_text)
 
     @staticmethod
@@ -136,6 +138,7 @@ class Reporter:
                 obj = testit.nameSpace(suite_name)(obj)
                 return obj
             else:
+
                 @allure.suite(suite_name)
                 @testit.nameSpace(suite_name)
                 @wraps(obj)
@@ -155,6 +158,7 @@ class Reporter:
 
                 return obj
             else:
+
                 @allure.sub_suite(sub_suite_name)
                 @testit.className(sub_suite_name)
                 @wraps(obj)
@@ -162,7 +166,6 @@ class Reporter:
                     return obj(*args, **kwargs)
 
                 return wrapper
-
 
         return decorator
 
@@ -188,7 +191,7 @@ class Reporter:
         temp_file_path = os.path.join(temp_dir, file_name)
 
         try:
-            with open(temp_file_path, 'wb') as f:
+            with open(temp_file_path, "wb") as f:
                 f.write(content)
             testit.addAttachments(temp_file_path)
         finally:

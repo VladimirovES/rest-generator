@@ -5,7 +5,7 @@ from my_codegen.utils.shell import run_command
 
 
 class ModelGenerator:
-    def __init__(self, swagger_path: str, models_file: str = 'models'):
+    def __init__(self, swagger_path: str, models_file: str = "models"):
         self.swagger_path = swagger_path
         self.models_file = models_file
         self.models_path = f"{models_file}.py"
@@ -21,41 +21,43 @@ class ModelGenerator:
             "--use-title-as-name",
             "--use-schema-description",
             "--collapse-root-models",
-            "--disable-appending-item-suffix",  
+            "--disable-appending-item-suffix",
             "--target-python-version 3.9",
             "--output-model-type pydantic_v2.BaseModel",
-            "--use-annotated"
+            "--use-annotated",
         ]
         run_command(" ".join(cmd_parts))
-        self._fix_root_models()  
+        self._fix_root_models()
 
     def _fix_root_models(self) -> None:
         """Заменяет простые RootModel на type aliases"""
         if not os.path.exists(self.models_path):
             return
 
-        with open(self.models_path, 'r', encoding='utf-8') as f:
+        with open(self.models_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        pattern = r'class (\w+)\(RootModel\[([^\]]+)\]\):\s*\n\s*root: (Annotated\[[^\]]+\])'
+        pattern = (
+            r"class (\w+)\(RootModel\[([^\]]+)\]\):\s*\n\s*root: (Annotated\[[^\]]+\])"
+        )
 
         def replacement(match):
             class_name = match.group(1)
             annotated_type = match.group(3)
-            return f'{class_name} = {annotated_type}'
+            return f"{class_name} = {annotated_type}"
 
         original_content = content
         content = re.sub(pattern, replacement, content)
 
-        if content != original_content and 'RootModel' not in content:
+        if content != original_content and "RootModel" not in content:
             content = self._remove_rootmodel_import(content)
 
-        with open(self.models_path, 'w', encoding='utf-8') as f:
+        with open(self.models_path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def _remove_rootmodel_import(self, content: str) -> str:
         """Убирает импорт RootModel из файла"""
-        lines = content.split('\n')
+        lines = content.split("\n")
         new_lines = []
 
         for line in lines:
@@ -66,7 +68,7 @@ class ModelGenerator:
             else:
                 new_lines.append(line)
 
-        return '\n'.join(new_lines)
+        return "\n".join(new_lines)
 
     def _clean_rootmodel_from_import(self, line: str) -> str:
         """Убирает RootModel из строки импорта pydantic"""
@@ -74,12 +76,9 @@ class ModelGenerator:
         if not line.strip().startswith(prefix):
             return line
 
-        after_import = line.strip()[len(prefix):]
+        after_import = line.strip()[len(prefix) :]
         imports_list = [imp.strip() for imp in after_import.split(",")]
-        filtered_imports = [
-            imp for imp in imports_list
-            if imp != "RootModel"
-        ]
+        filtered_imports = [imp for imp in imports_list if imp != "RootModel"]
 
         if not filtered_imports:
             return ""  # Убираем всю строку если импортов не осталось
@@ -96,12 +95,12 @@ class ModelGenerator:
         lines = self._fix_pydantic_imports(lines)
         lines = self._add_config_import_if_needed(lines)
 
-        with open(self.models_path, 'w', encoding='utf-8') as f:
+        with open(self.models_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
 
     def _read_file(self) -> List[str]:
         """Читает файл моделей"""
-        with open(self.models_path, 'r', encoding='utf-8') as f:
+        with open(self.models_path, "r", encoding="utf-8") as f:
             return f.readlines()
 
     def _replace_base_model(self, lines: List[str]) -> List[str]:
@@ -126,12 +125,11 @@ class ModelGenerator:
     def _clean_pydantic_import(self, line: str) -> str:
         """Убирает BaseModel из строки импорта pydantic"""
         prefix = "from pydantic import "
-        after_import = line.strip()[len(prefix):]
+        after_import = line.strip()[len(prefix) :]
 
         imports_list = [imp.strip() for imp in after_import.split(",")]
         filtered_imports = [
-            imp for imp in imports_list
-            if imp not in ("BaseModel", "BaseConfigModel")
+            imp for imp in imports_list if imp not in ("BaseModel", "BaseConfigModel")
         ]
 
         if not filtered_imports:
@@ -141,7 +139,9 @@ class ModelGenerator:
 
     def _add_config_import_if_needed(self, lines: List[str]) -> List[str]:
         """Добавляет импорт BaseConfigModel если его нет"""
-        config_import = "from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel\n"
+        config_import = (
+            "from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel\n"
+        )
 
         if any("BaseConfigModel" in line and "import" in line for line in lines):
             return lines
@@ -171,7 +171,7 @@ class ModelGenerator:
             "--remove-all-unused-imports",
             "--recursive",
             "--in-place",
-            f"'{output_dir}'"
+            f"'{output_dir}'",
         ]
         run_command(" ".join(cmd_parts))
 

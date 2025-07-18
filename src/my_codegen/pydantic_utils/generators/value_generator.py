@@ -1,4 +1,3 @@
-
 import random
 from typing import Any, Optional, List, get_args, Annotated
 
@@ -11,7 +10,7 @@ from .generators import (
     PydanticModelGenerator,
     ContainerGenerator,
     PrimitiveGenerator,
-    SpecialTypeGenerator
+    SpecialTypeGenerator,
 )
 
 
@@ -29,8 +28,13 @@ class ValueGenerator:
     ]
 
     @classmethod
-    def generate(cls, field_type: Any, field_name: Optional[str] = None,
-                 current_depth: int = 0, max_depth: int = 5) -> Any:
+    def generate(
+        cls,
+        field_type: Any,
+        field_name: Optional[str] = None,
+        current_depth: int = 0,
+        max_depth: int = 5,
+    ) -> Any:
         """Генерирует значение для заданного типа"""
 
         # Обработка Optional
@@ -46,7 +50,9 @@ class ValueGenerator:
 
         for generator in cls._generators:
             if generator.can_handle(field_type, field_name):
-                return generator.generate(field_type, field_name, current_depth, max_depth)
+                return generator.generate(
+                    field_type, field_name, current_depth, max_depth
+                )
 
         raise ValueError(f"No generator found for type: {field_type}")
 
@@ -55,11 +61,15 @@ class RandomValueGenerator:
     """Публичный API для обратной совместимости"""
 
     @staticmethod
-    def random_value(field_type: Any, current_depth: int = 0, max_depth: int = 5) -> Any:
+    def random_value(
+        field_type: Any, current_depth: int = 0, max_depth: int = 5
+    ) -> Any:
         return ValueGenerator.generate(field_type, None, current_depth, max_depth)
 
     @staticmethod
-    def _handle_annotated(base_type: Any, metadata: tuple, current_depth: int, max_depth: int) -> Any:
+    def _handle_annotated(
+        base_type: Any, metadata: tuple, current_depth: int, max_depth: int
+    ) -> Any:
         """Обратная совместимость"""
         return ValueGenerator.generate(
             Annotated[base_type, *metadata], None, current_depth, max_depth

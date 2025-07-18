@@ -1,4 +1,14 @@
-from typing import Any, Union, List, Dict, Set, ForwardRef, Annotated, get_args, get_origin
+from typing import (
+    Any,
+    Union,
+    List,
+    Dict,
+    Set,
+    ForwardRef,
+    Annotated,
+    get_args,
+    get_origin,
+)
 from enum import Enum
 from pydantic import BaseModel, RootModel
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
@@ -42,9 +52,9 @@ class TypeUtils:
     @staticmethod
     def is_pydantic_model(field_type: Any) -> bool:
         """Проверяет, является ли тип Pydantic моделью"""
-        return (isinstance(field_type, type) and
-                (issubclass(field_type, BaseConfigModel) or
-                 issubclass(field_type, BaseModel)))
+        return isinstance(field_type, type) and (
+            issubclass(field_type, BaseConfigModel) or issubclass(field_type, BaseModel)
+        )
 
     @staticmethod
     def is_root_model(field_type: Any) -> bool:

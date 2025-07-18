@@ -50,7 +50,7 @@ class SwaggerComponents(BaseModel):
 class SwaggerServer(BaseModel):
     url: str
     description: Optional[str] = None
-    
+
 
 class SwaggerSpec(BaseModel):
     servers: List[SwaggerServer] = []

@@ -59,7 +59,7 @@ class ParameterBuilder:
         params = []
         params.extend(self._build_optional_query_params())
 
-        if self.endpoint.http_method == 'GET':
+        if self.endpoint.http_method == "GET":
             params.append("params: Optional[Dict[str, Any]] = None")
         elif not self._is_payload_required():
             params.append("payload: Optional[Any] = None")
@@ -73,12 +73,18 @@ class ParameterBuilder:
         return [f"{p.name}: {p.type}" for p in self.endpoint.query_params if p.required]
 
     def _build_optional_query_params(self) -> List[str]:
-        return [f"{p.name}: Optional[{p.type}] = None" for p in self.endpoint.query_params if not p.required]
+        return [
+            f"{p.name}: Optional[{p.type}] = None"
+            for p in self.endpoint.query_params
+            if not p.required
+        ]
 
     def _is_payload_required(self) -> bool:
-        return (self.endpoint.http_method != 'GET' and
-                self.endpoint.payload_type and
-                self.endpoint.payload_type != 'Any')
+        return (
+            self.endpoint.http_method != "GET"
+            and self.endpoint.payload_type
+            and self.endpoint.payload_type != "Any"
+        )
 
 
 class HttpCallBuilder:
@@ -89,7 +95,7 @@ class HttpCallBuilder:
 
     def build_http_call(self) -> str:
         """Генерирует HTTP вызов"""
-        if self.endpoint.http_method == 'GET':
+        if self.endpoint.http_method == "GET":
             return self._build_get_call()
         else:
             return self._build_post_call()
@@ -121,7 +127,7 @@ class HttpCallBuilder:
 
         call_parts.extend(["headers=headers", "expected_status=status"])
 
-        joined_parts = ',\n            '.join(call_parts)
+        joined_parts = ",\n            ".join(call_parts)
         return f"""r_json = self._{method}(
             {joined_parts}
         )"""
@@ -131,7 +137,7 @@ class HttpCallBuilder:
         if not self.endpoint.payload_type:
             return []
 
-        if self.endpoint.payload_type != 'Any':
+        if self.endpoint.payload_type != "Any":
             return ["payload=payload"]
 
         return []
@@ -157,12 +163,14 @@ class ReturnStatementBuilder:
 
     def build_return_statement(self) -> str:
         """Генерирует return statement"""
-        if self.endpoint.return_type == 'Any':
+        if self.endpoint.return_type == "Any":
             return "return r_json"
 
-        condition = f"if status == HTTPStatus.{self.endpoint.expected_status} else r_json"
+        condition = (
+            f"if status == HTTPStatus.{self.endpoint.expected_status} else r_json"
+        )
 
-        if self.endpoint.return_type.startswith('List['):
+        if self.endpoint.return_type.startswith("List["):
             return self._build_list_return(condition)
         elif self._is_primitive_type():
             return self._build_primitive_return(condition)
@@ -173,7 +181,7 @@ class ReturnStatementBuilder:
         """List[Model] return"""
         inner_type = self.endpoint.return_type[5:-1]
 
-        if inner_type in {'str', 'int', 'float', 'bool', 'Any'}:
+        if inner_type in {"str", "int", "float", "bool", "Any"}:
             return f"return [item for item in r_json] {condition}"
         else:
             return f"return [{inner_type}(**item) for item in r_json] {condition}"
@@ -187,12 +195,13 @@ class ReturnStatementBuilder:
         return f"return {self.endpoint.return_type}(**r_json) {condition}"
 
     def _is_primitive_type(self) -> bool:
-        return self.endpoint.return_type in {'str', 'int', 'float', 'bool'}
+        return self.endpoint.return_type in {"str", "int", "float", "bool"}
 
 
 @dataclass
 class MethodContext:
     """Класс для рендеринга в шаблонах контента"""
+
     name: str
     description: str
     path: str
@@ -204,7 +213,7 @@ class MethodContext:
     return_statement: str
 
     @classmethod
-    def from_endpoint(cls, endpoint: Endpoint) -> 'MethodContext':
+    def from_endpoint(cls, endpoint: Endpoint) -> "MethodContext":
         """Конвертирует Endpoint в MethodContext"""
 
         param_builder = ParameterBuilder(endpoint)
@@ -220,5 +229,5 @@ class MethodContext:
             required_params=param_builder.build_required_params(),
             optional_params=param_builder.build_optional_params(),
             http_call=http_builder.build_http_call(),
-            return_statement=return_builder.build_return_statement()
+            return_statement=return_builder.build_return_statement(),
         )

@@ -18,24 +18,28 @@ class FacadeGenerator:
         self.env = Environment(
             loader=PackageLoader("my_codegen", "templates"),
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
         )
         self.template = self.env.get_template(self.template_name)
 
-    def generate_facade(self, file_to_class: Dict[str, str], output_dir: str, file_name: str) -> None:
+    def generate_facade(
+        self, file_to_class: Dict[str, str], output_dir: str, file_name: str
+    ) -> None:
         imports_data = self._prepare_imports_data(file_to_class)
 
         rendered = self.template.render(
             facade_class_name=self.facade_class_name,
             imports=imports_data,
-            docstring_indent=" "
+            docstring_indent=" ",
         )
 
         facade_path = os.path.join(output_dir, file_name)
         with open(facade_path, "w", encoding="utf-8") as f:
             f.write(rendered)
 
-    def _prepare_imports_data(self, file_to_class: Dict[str, str]) -> List[ClientImport]:
+    def _prepare_imports_data(
+        self, file_to_class: Dict[str, str]
+    ) -> List[ClientImport]:
         """Подготавливает данные об импортах клиентов"""
         client_files = sorted([f for f in file_to_class if f.endswith("_client.py")])
 
@@ -45,10 +49,12 @@ class FacadeGenerator:
             class_name = file_to_class[fname]
             attribute_name = class_name.lower()
 
-            imports_data.append(ClientImport(
-                module_name=module_name,
-                class_name=class_name,
-                attribute_name=attribute_name
-            ))
+            imports_data.append(
+                ClientImport(
+                    module_name=module_name,
+                    class_name=class_name,
+                    attribute_name=attribute_name,
+                )
+            )
 
         return imports_data

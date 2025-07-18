@@ -27,7 +27,7 @@ def generate_app_facade(
     env = Environment(
         loader=PackageLoader("my_codegen", "templates"),
         trim_blocks=True,
-        lstrip_blocks=True
+        lstrip_blocks=True,
     )
     template = env.get_template(template_name)
 

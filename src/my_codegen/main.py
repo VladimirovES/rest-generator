@@ -15,9 +15,11 @@ load_dotenv()
 
 
 @click.command()
-@click.option('--swagger-url', required=True, help='URL to download the Swagger JSON from')
+@click.option(
+    "--swagger-url", required=True, help="URL to download the Swagger JSON from"
+)
 def main(swagger_url):
-    swagger_path = 'swagger.json'
+    swagger_path = "swagger.json"
     loader = SwaggerLoader(swagger_path)
 
     # 2. Download swagger.json
@@ -31,12 +33,14 @@ def main(swagger_url):
     logger.info(f"Service identified as: {module_name}")
 
     # 3. Create output directories
-    base_output_dir = 'http_clients'
+    base_output_dir = "http_clients"
     service_dir = os.path.join(base_output_dir, module_name)
     endpoints_dir = os.path.join(service_dir, "endpoints")
     os.makedirs(service_dir, exist_ok=True)
     os.makedirs(endpoints_dir, exist_ok=True)
-    logger.info(f"Created directories for service: '{service_dir}' and '{endpoints_dir}'")
+    logger.info(
+        f"Created directories for service: '{service_dir}' and '{endpoints_dir}'"
+    )
 
     # 4. Generate models -> http_clients/<service_name>/models.py
     models_file = os.path.join(service_dir, "models")
@@ -57,11 +61,11 @@ def main(swagger_url):
     # 6. Generate client classes -> http_clients/<service_name>/endpoints/*.py
     logger.info("Generating client classes (by swagger tags)...")
     client_gen = ClientGenerator(
-        endpoints=endpoints,
-        imports=imports,
-        template_name='client_template.j2'
+        endpoints=endpoints, imports=imports, template_name="client_template.j2"
     )
-    file_to_class = client_gen.generate_clients(endpoints_dir, module_name, service_path)
+    file_to_class = client_gen.generate_clients(
+        endpoints_dir, module_name, service_path
+    )
     logger.info(f"Generated {len(file_to_class)} client files.")
 
     # 7. Auto-format (autoflake, black)
@@ -70,10 +74,11 @@ def main(swagger_url):
     logger.info("Auto-format completed.")
 
     # 8. Generate local facade -> http_clients/<service_name>/facade.py
-    facade_class_name = ''.join(word.capitalize() for word in module_name.split('_')) + 'Api'
+    facade_class_name = (
+        "".join(word.capitalize() for word in module_name.split("_")) + "Api"
+    )
     facade_gen = FacadeGenerator(
-        facade_class_name=facade_class_name,
-        template_name='facade_template.j2'
+        facade_class_name=facade_class_name, template_name="facade_template.j2"
     )
     facade_filename = "facade.py"
     logger.info("Generating local facade for the service.")
@@ -85,12 +90,13 @@ def main(swagger_url):
     generate_app_facade(
         template_name="app_facade.j2",
         output_path="http_clients/api_facade.py",
-        base_dir="http_clients"
+        base_dir="http_clients",
     )
     logger.info("Global facade (api_facade.py) generated successfully.")
 
     logger.info(
-        f"Clients (endpoints/*.py), models, and facade for service '{module_name}' have been created at '{service_dir}'.")
+        f"Clients (endpoints/*.py), models, and facade for service '{module_name}' have been created at '{service_dir}'."
+    )
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ def configure_logging():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
 
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     ch.setFormatter(formatter)
 
     logger.addHandler(ch)
@@ -45,12 +45,12 @@ def allure_report(response, payload):
     if payload is not None:
         try:
             if isinstance(payload, bytes):
-                payload = payload.decode('utf-8')
+                payload = payload.decode("utf-8")
 
             formatted_data = json.dumps(
                 json.loads(payload) if isinstance(payload, str) else payload,
                 indent=4,
-                ensure_ascii=False
+                ensure_ascii=False,
             )
             html_request = f"<pre><code>{formatted_data}</code></pre>"
             text_request = formatted_data
@@ -63,9 +63,7 @@ def allure_report(response, payload):
 
     try:
         formatted_response = json.dumps(
-            json.loads(response.text),
-            indent=4,
-            ensure_ascii=False
+            json.loads(response.text), indent=4, ensure_ascii=False
         )
         html_response = f"<pre><code>{formatted_response}</code></pre>"
         text_response = formatted_response
@@ -75,14 +73,10 @@ def allure_report(response, payload):
 
     # Отчет для Allure
     allure.attach(
-        html_request,
-        name="Request",
-        attachment_type=allure.attachment_type.HTML
+        html_request, name="Request", attachment_type=allure.attachment_type.HTML
     )
     allure.attach(
-        html_response,
-        name="Response",
-        attachment_type=allure.attachment_type.HTML
+        html_response, name="Response", attachment_type=allure.attachment_type.HTML
     )
 
 
@@ -100,17 +94,17 @@ class ApiRequestError(AssertionError):
         if not text:
             return text
 
-        lines = text.split('\n')
+        lines = text.split("\n")
         wrapped_lines = []
 
         for line in lines:
             if len(line) <= width:
                 wrapped_lines.append(line)
             else:
-                wrapped = textwrap.fill(line, width=width, subsequent_indent='  ')
+                wrapped = textwrap.fill(line, width=width, subsequent_indent="  ")
                 wrapped_lines.append(wrapped)
 
-        return '\n'.join(wrapped_lines)
+        return "\n".join(wrapped_lines)
 
     def _format_data(self, data, max_total_length=None, line_width=80):
         """Форматирует данные для отображения с переносом длинных строк"""
@@ -145,10 +139,12 @@ class ApiRequestError(AssertionError):
 
     def _create_error_message(self):
         """Создает красивое сообщение об ошибке"""
-        separator = '=' * 80
-        line = '─' * 80
+        separator = "=" * 80
+        line = "─" * 80
 
-        expected_status_text = f"{self.expected_status.value} ({self.expected_status.phrase})"
+        expected_status_text = (
+            f"{self.expected_status.value} ({self.expected_status.phrase})"
+        )
         actual_status_text = f"{self.response.status_code} ({self._get_status_name(self.response.status_code)})"
 
         sections = [
@@ -173,12 +169,14 @@ class ApiRequestError(AssertionError):
             line,
             "🏷️  REQUEST HEADERS:",
             line,
-            self._format_data(dict(self.response.request.headers), max_total_length=2000),
+            self._format_data(
+                dict(self.response.request.headers), max_total_length=2000
+            ),
             line,
             "🏷️  RESPONSE HEADERS:",
             line,
             self._format_data(dict(self.response.headers), max_total_length=2000),
-            separator
+            separator,
         ]
 
-        return '\n'.join(sections)
+        return "\n".join(sections)

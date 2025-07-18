@@ -2,19 +2,27 @@ from typing import Any
 from faker import Faker
 from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel
 
-from my_codegen.pydantic_utils.generators.type_utils import TypeUtils 
-from my_codegen.pydantic_utils.generators.value_generator import ValueGenerator, RandomValueGenerator 
+from my_codegen.pydantic_utils.generators.type_utils import TypeUtils
+from my_codegen.pydantic_utils.generators.value_generator import (
+    ValueGenerator,
+    RandomValueGenerator,
+)
 
 
 fake = Faker()
-__all__ = ['GenerateData', 'RandomValueGenerator', 'fake']
+__all__ = ["GenerateData", "RandomValueGenerator", "fake"]
 
 
 class GenerateData:
     """Генератор данных для Pydantic моделей"""
 
-    def __init__(self, model_class: type[BaseConfigModel], current_depth: int = 0,
-                 max_depth: int = 5, use_smart_generation: bool = True):
+    def __init__(
+        self,
+        model_class: type[BaseConfigModel],
+        current_depth: int = 0,
+        max_depth: int = 5,
+        use_smart_generation: bool = True,
+    ):
         self.model_class = model_class
         self.data = {}
         self.current_depth = current_depth
@@ -37,7 +45,9 @@ class GenerateData:
             if optional_only and not is_optional:
                 continue
 
-            real_type = TypeUtils.extract_base_type(annotation) if is_optional else annotation
+            real_type = (
+                TypeUtils.extract_base_type(annotation) if is_optional else annotation
+            )
 
             # Генерируем значение с учетом имени поля (если включена умная генерация)
             field_name_for_gen = field_name if self.use_smart_generation else None

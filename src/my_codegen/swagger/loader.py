@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Any
 from my_codegen.swagger.swagger_models import SwaggerSpec
 
 
-
 class SwaggerLoader:
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -17,7 +16,7 @@ class SwaggerLoader:
 
     def load(self) -> None:
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
+            with open(self.file_path, "r", encoding="utf-8") as f:
                 swagger_dict = json.load(f)
             self.swagger_spec = SwaggerSpec(**swagger_dict)
         except ValidationError as e:
@@ -26,8 +25,8 @@ class SwaggerLoader:
     def get_module_name(self) -> str:
         """Имя папки/модуля - только из title"""
         title = self.swagger_spec.info.title
-        normalized = re.sub(r'[^a-zA-Z0-9]+', '_', title.strip())
-        return normalized.lower().strip('_')
+        normalized = re.sub(r"[^a-zA-Z0-9]+", "_", title.strip())
+        return normalized.lower().strip("_")
 
     def get_service_path(self) -> str:
         """Путь сервиса для URL - из servers"""
