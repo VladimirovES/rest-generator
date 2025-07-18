@@ -16,9 +16,8 @@ from .generators import (
 
 
 class ValueGenerator:
-    """Главный генератор, управляющий всеми остальными"""
+    """Главный генератор, используйщий все остальные генераторы"""
 
-    # Порядок важен! Более специфичные генераторы должны быть первыми
     _generators: List[BaseGenerator] = [
         SmartFieldGenerator(),
         AnnotatedGenerator(),
@@ -45,7 +44,6 @@ class ValueGenerator:
             chosen = random.choice(args)
             return cls.generate(chosen, field_name, current_depth, max_depth)
 
-        # Проходим по цепочке генераторов
         for generator in cls._generators:
             if generator.can_handle(field_type, field_name):
                 return generator.generate(field_type, field_name, current_depth, max_depth)

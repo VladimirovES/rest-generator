@@ -12,7 +12,6 @@ class ClientGenerator:
         self.template = self._load_template(template_name)
 
     def _load_template(self, template_name: str):
-        """Загружает Jinja2 шаблон"""
         env = Environment(
             loader=PackageLoader("my_codegen", "templates"),
             trim_blocks=True,
@@ -64,7 +63,7 @@ class ClientGenerator:
             module_name: str,
             service_path: str
     ) -> None:
-        """Генерирует один файл клиента"""
+        """Генерирует файл клиента"""
         method_contexts = [MethodContext.from_endpoint(ep) for ep in endpoints]
 
         rendered_content = self.template.render(
@@ -75,10 +74,6 @@ class ClientGenerator:
             imports=self.imports
         )
 
-        self._write_file(output_dir, file_name, rendered_content)
-
-    def _write_file(self, output_dir: str, file_name: str, content: str) -> None:
-        """Записывает содержимое в файл"""
         file_path = os.path.join(output_dir, file_name)
         with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
+            f.write(rendered_content)
