@@ -109,7 +109,7 @@ class HttpCallBuilder:
             path=self._service + path,
             params={params_dict},
             headers=headers,
-            expected_status=status
+            expected_status=expected_status
         )"""
 
     def _build_post_call(self) -> str:
@@ -125,7 +125,7 @@ class HttpCallBuilder:
             params_dict = self._build_query_params_dict(include_params=False)
             call_parts.append(f"params={params_dict}")
 
-        call_parts.extend(["headers=headers", "expected_status=status"])
+        call_parts.extend(["headers=headers", "expected_status=expected_status"])
 
         joined_parts = ",\n            ".join(call_parts)
         return f"""r_json = self._{method}(
@@ -167,7 +167,7 @@ class ReturnStatementBuilder:
             return "return r_json"
 
         condition = (
-            f"if status == HTTPStatus.{self.endpoint.expected_status} else r_json"
+            f"if expected_status == HTTPStatus.{self.endpoint.expected_status} else r_json"
         )
 
         if self.endpoint.return_type.startswith("List["):
