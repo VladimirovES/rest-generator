@@ -41,7 +41,7 @@ class SwaggerProcessor:
         return endpoints
 
     def _create_endpoint(
-        self, path: str, http_method: str, operation: SwaggerOperation, tag: str
+            self, path: str, http_method: str, operation: SwaggerOperation, tag: str
     ) -> Endpoint:
 
         expected_status, return_type = self._extract_response_info(operation.responses)
@@ -56,7 +56,8 @@ class SwaggerProcessor:
             payload_type=self._extract_payload_type(operation.requestBody),
             expected_status=expected_status,
             return_type=return_type,
-            description=operation.description or operation.summary or "",
+            description=operation.description or "",
+            summary=operation.summary or "", 
         )
 
     def extract_imports(self) -> List[str]:

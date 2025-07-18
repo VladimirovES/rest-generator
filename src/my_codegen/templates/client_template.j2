@@ -8,7 +8,7 @@ class {{ class_name }}(ApiClient):
     _service = "{{ service_path }}"
 
 {% for method in methods %}
-    @Reporter.general_step("{{ method.description }}")
+    @Reporter.general_step("{{ method.summary }}")
     def {{ method.name }}(self,
         {% if method.required_params %}{{ method.required_params | join(',\n        ') }},{% endif %}
         {% if method.optional_params %}{{ method.optional_params | join(',\n        ') }},{% endif %}
@@ -16,7 +16,6 @@ class {{ class_name }}(ApiClient):
         expected_status: HTTPStatus = HTTPStatus.{{ method.expected_status }}) -> {{ method.return_type }}:
 
         """{{ method.description }}"""
-
         path = f"{{ method.path }}"
         {{ method.http_call }}
         {{ method.return_statement }}
