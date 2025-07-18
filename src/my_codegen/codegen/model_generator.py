@@ -95,8 +95,7 @@ class ModelGenerator:
         lines = self._replace_base_model(lines)
         lines = self._fix_pydantic_imports(lines)
         lines = self._add_config_import_if_needed(lines)
-        # self._write_file(lines)
-        
+
         with open(self.models_path, 'w', encoding='utf-8') as f:
             f.writelines(lines)
 
@@ -104,11 +103,6 @@ class ModelGenerator:
         """Читает файл моделей"""
         with open(self.models_path, 'r', encoding='utf-8') as f:
             return f.readlines()
-
-    # def _write_file(self, lines: List[str]) -> None:
-        # """Записывает файл моделей"""
-        # with open(self.models_path, 'w', encoding='utf-8') as f:
-        #     f.writelines(lines)
 
     def _replace_base_model(self, lines: List[str]) -> List[str]:
         """Заменяет BaseModel на BaseConfigModel"""
@@ -182,18 +176,3 @@ class ModelGenerator:
         run_command(" ".join(cmd_parts))
 
         run_command(f"black '{output_dir}'")
-
-    # def _run_autoflake(self, output_dir: str) -> None:
-    #     """Убирает неиспользуемые импорты"""
-    #     cmd_parts = [
-    #         "autoflake",
-    #         "--remove-all-unused-imports",
-    #         "--recursive",
-    #         "--in-place",
-    #         f"'{output_dir}'"
-    #     ]
-    #     run_command(" ".join(cmd_parts))
-    # 
-    # def _run_black(self, output_dir: str) -> None:
-    #     """Форматирует код"""
-    #     run_command(f"black '{output_dir}'")

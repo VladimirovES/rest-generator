@@ -82,7 +82,7 @@ class ParameterBuilder:
 
 
 class HttpCallBuilder:
-    """Строит HTTP вызовы"""
+    """Собирает часть HTTP вызовы"""
 
     def __init__(self, endpoint: Endpoint):
         self.endpoint = endpoint
@@ -176,7 +176,7 @@ class ReturnStatementBuilder:
         if inner_type in {'str', 'int', 'float', 'bool', 'Any'}:
             return f"return [item for item in r_json] {condition}"
         else:
-            return f"return [{inner_type}(**item)(**r_json) for item in r_json] {condition}"
+            return f"return [{inner_type}(**item) for item in r_json] {condition}"
 
     def _build_primitive_return(self, condition: str) -> str:
         """Primitive type return"""
@@ -192,7 +192,7 @@ class ReturnStatementBuilder:
 
 @dataclass
 class MethodContext:
-    """Готовый контекст для рендеринга метода"""
+    """Класс для рендеринга в шаблонах контента"""
     name: str
     description: str
     path: str

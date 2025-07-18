@@ -6,6 +6,7 @@ from typing import Union, Dict, List, Optional, Any
 
 from pydantic import BaseModel
 
+
 import allure
 import requests
 from http import HTTPStatus
@@ -110,7 +111,7 @@ class RequestHandler:
             method: str,
             payload: Optional[Dict] = None,
     ):
-        if expected_status and response.status_code != expected_status.value:
+        if response.status_code != expected_status.value:
             raise ApiRequestError(response, expected_status, method, payload)
 
     def process_response(
