@@ -16,6 +16,7 @@ class {{ class_name }}(ApiClient):
         expected_status: HTTPStatus = HTTPStatus.{{ method.expected_status }}) -> {{ method.return_type }}:
 
         """{{ method.description }}"""
+
         path = f"{{ method.path }}"
         {{ method.http_call }}
         {{ method.return_statement }}
