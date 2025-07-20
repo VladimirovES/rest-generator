@@ -141,7 +141,7 @@ class Expect:
         lines = []
 
         negation = "НЕ " if self._negated else ""
-        lines.append(f'CheckName -  "{self._name}"')
+        lines.append(f'Check field: "{self._name}"')
 
         if expected_formatted:
             lines.append(f"Expected: {expected_formatted}")
@@ -156,7 +156,6 @@ class Expect:
     def _fail(
         self, expectation: str, expected: Any = None, additional_info: str = None
     ):
-        """Генерирует понятное сообщение об ошибке и выбрасывает исключение."""
         actual_formatted = self._format_value(self.actual)
         expected_formatted = (
             self._format_value(expected) if expected is not None else None
