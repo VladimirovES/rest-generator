@@ -107,7 +107,7 @@ class HttpCallBuilder:
         params_dict = self._build_query_params_dict(include_params=True)
         method = self.endpoint.http_method.lower()
 
-        return f"""r_json = self._{method}(
+        return f"""r_json = self._client.{method}(
             path=self._service + path,
             params={params_dict},
             headers=headers,
@@ -130,7 +130,7 @@ class HttpCallBuilder:
         call_parts.extend(["headers=headers", "expected_status=expected_status"])
 
         joined_parts = ",\n            ".join(call_parts)
-        return f"""r_json = self._{method}(
+        return f"""r_json = self._client.{method}(
             {joined_parts}
         )"""
 

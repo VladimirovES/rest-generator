@@ -1,14 +1,19 @@
 from http import HTTPStatus
+import allure
+
 from typing import Any, Optional, List, Dict
 from my_codegen.http_clients.api_client import ApiClient
 from {{ models_import_path }} import {{ imports | join(', ') }}
-from my_codegen.utils.report_utils import Reporter
 
-class {{ class_name }}(ApiClient):
+class {{ class_name }}:
+
+    def __init__(self, client: ApiClient):
+        self._client = client
+
     _service = "{{ service_path }}"
 
 {% for method in methods %}
-    @Reporter.general_step("{{ method.summary }}")
+    @allure.step("{{ method.summary }}")
     def {{ method.name }}(self,
         {% if method.required_params %}{{ method.required_params | join(',\n        ') }},{% endif %}
         {% if method.optional_params %}{{ method.optional_params | join(',\n        ') }},{% endif %}

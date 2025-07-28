@@ -4,8 +4,7 @@ import pprint
 from enum import Enum
 from typing import Union, Dict, List, Optional, Any
 
-from pydantic import BaseModel
-
+from pydantic import BaseModel, RootModel
 
 import allure
 import requests
@@ -62,7 +61,6 @@ class RequestHandler:
             return payload.model_dump_json()
 
         if isinstance(payload, list) and payload and isinstance(payload[0], BaseModel):
-            from pydantic import RootModel
 
             ListModel = RootModel[List[type(payload[0])]]
             return ListModel(payload).model_dump_json()
@@ -165,7 +163,7 @@ class ApiClient:
 
         return self._request_handler.process_response(response)
 
-    def _get(
+    def get(
         self,
         path: str,
         headers: Optional[Dict] = None,
@@ -182,7 +180,7 @@ class ApiClient:
             **kwargs,
         )
 
-    def _post(
+    def post(
         self,
         path: str,
         payload: Optional[Any] = None,
@@ -201,7 +199,7 @@ class ApiClient:
             **kwargs,
         )
 
-    def _put(
+    def put(
         self,
         path: str = "",
         payload: Optional[Any] = None,
@@ -222,7 +220,7 @@ class ApiClient:
             **kwargs,
         )
 
-    def _patch(
+    def patch(
         self,
         path: str,
         payload: Optional[Any] = None,
@@ -241,7 +239,7 @@ class ApiClient:
             **kwargs,
         )
 
-    def _delete(
+    def delete(
         self,
         path: str,
         headers: Optional[Dict] = None,
