@@ -10,7 +10,7 @@ from my_codegen.pydantic_utils.generators.value_generator import (
 
 
 fake = Faker()
-__all__ = ["GenerateData", "RandomValueGenerator", "fake"]
+__all__ = ["GenData", "RandomValueGenerator", "fake"]
 
 
 class DataGen:
