@@ -214,7 +214,7 @@ class PydanticModelGenerator(BaseGenerator):
             except:
                 return None
 
-        from_data = GenerateData(field_type, current_depth + 1, max_depth)
+        from_data = GenData(field_type, current_depth + 1, max_depth)
         return from_data.fill_all().build()
 
 
