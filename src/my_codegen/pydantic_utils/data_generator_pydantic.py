@@ -13,7 +13,7 @@ fake = Faker()
 __all__ = ["GenerateData", "RandomValueGenerator", "fake"]
 
 
-class GenerateData:
+class DataGen:
     """Генератор данных для Pydantic моделей"""
 
     def __init__(
@@ -55,7 +55,7 @@ class GenerateData:
                 real_type, field_name_for_gen, self.current_depth, self.max_depth
             )
 
-    def fill_all_fields(self, **data):
+    def fill_all(self, **data):
         self.data.update(data)
         self._fill_fields(required_only=False, optional_only=False)
         return self
@@ -70,7 +70,7 @@ class GenerateData:
         self._fill_fields(required_only=False, optional_only=True)
         return self
 
-    def set_field(self, **kwargs):
+    def set_fields(self, **kwargs):
         self.data.update(kwargs)
         return self
 

@@ -61,7 +61,6 @@ class RequestHandler:
             return payload.model_dump_json()
 
         if isinstance(payload, list) and payload and isinstance(payload[0], BaseModel):
-
             ListModel = RootModel[List[type(payload[0])]]
             return ListModel(payload).model_dump_json()
 
