@@ -88,12 +88,12 @@ class ParameterBuilder:
             and self.endpoint.payload_type != "Any"
         )
 
-
 class HttpCallBuilder:
     """Собирает часть HTTP вызовы"""
 
-    def __init__(self, endpoint: Endpoint):
+    def __init__(self, endpoint: Endpoint, service_path: str = ""):
         self.endpoint = endpoint
+        self.service_path = service_path
 
     def build_http_call(self) -> str:
         """Генерирует HTTP вызов"""
@@ -106,9 +106,10 @@ class HttpCallBuilder:
         """GET запрос"""
         params_dict = self._build_query_params_dict(include_params=True)
         method = self.endpoint.http_method.lower()
+        path_expr = self._build_path_expression()
 
         return f"""r_json = self._client.{method}(
-            path=path,
+            path={path_expr},
             params={params_dict},
             headers=headers,
             expected_status=expected_status
@@ -117,7 +118,8 @@ class HttpCallBuilder:
     def _build_post_call(self) -> str:
         """POST/PUT/PATCH/DELETE запрос"""
         method = self.endpoint.http_method.lower()
-        call_parts = ["path=path"]
+        path_expr = self._build_path_expression()
+        call_parts = [f"path={path_expr}"]
 
         payload_parts = self._build_payload_parts()
         if payload_parts:
@@ -133,6 +135,11 @@ class HttpCallBuilder:
         return f"""r_json = self._client.{method}(
             {joined_parts}
         )"""
+
+    def _build_path_expression(self) -> str:
+        """Строит выражение для пути"""
+        full_path = f"{self.service_path}{self.endpoint.path}"
+        return f'f"{full_path}"'
 
     def _build_payload_parts(self) -> List[str]:
         """Строит части для payload"""
@@ -206,7 +213,7 @@ class MethodContext:
 
     name: str
     description: str
-    summary :str
+    summary: str
     path: str
     return_type: str
     expected_status: str
@@ -216,13 +223,13 @@ class MethodContext:
     return_statement: str
 
     @classmethod
-    def from_endpoint(cls, endpoint: Endpoint) -> "MethodContext":
+    def from_endpoint(cls, endpoint: Endpoint, service_path: str = "") -> "MethodContext":
         """Конвертирует Endpoint в MethodContext"""
 
         param_builder = ParameterBuilder(endpoint)
-        http_builder = HttpCallBuilder(endpoint)
+        http_builder = HttpCallBuilder(endpoint, service_path)
         return_builder = ReturnStatementBuilder(endpoint)
-        
+
         return cls(
             name=endpoint.name,
             description=endpoint.description,
