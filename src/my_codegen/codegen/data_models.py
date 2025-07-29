@@ -108,7 +108,7 @@ class HttpCallBuilder:
         method = self.endpoint.http_method.lower()
 
         return f"""r_json = self._client.{method}(
-            path=self._service + path,
+            path=path,
             params={params_dict},
             headers=headers,
             expected_status=expected_status
@@ -117,7 +117,7 @@ class HttpCallBuilder:
     def _build_post_call(self) -> str:
         """POST/PUT/PATCH/DELETE запрос"""
         method = self.endpoint.http_method.lower()
-        call_parts = ["path=self._service + path"]
+        call_parts = ["path=path"]
 
         payload_parts = self._build_payload_parts()
         if payload_parts:
