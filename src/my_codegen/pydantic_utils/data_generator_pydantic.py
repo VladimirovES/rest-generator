@@ -13,7 +13,7 @@ fake = Faker()
 __all__ = ["GenData", "RandomValueGenerator", "fake"]
 
 
-class DataGen:
+class GenData:
     """Генератор данных для Pydantic моделей"""
 
     def __init__(

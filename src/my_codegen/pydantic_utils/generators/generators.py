@@ -1,5 +1,3 @@
-"""Конкретные реализации генераторов для различных типов данных."""
-
 import random
 from datetime import datetime, date, timedelta
 from typing import (
@@ -205,11 +203,11 @@ class PydanticModelGenerator(BaseGenerator):
     def _generate_pydantic_model(
         self, field_type: Any, current_depth: int, max_depth: int
     ) -> Any:
-        from .data_generator_pydantic import DataGen
+        from .data_generator_pydantic import GenData
 
         if current_depth >= max_depth:
             try:
-                from_data = DataGen(field_type, current_depth, max_depth)
+                from_data = GenData(field_type, current_depth, max_depth)
                 return from_data.fill_required().build()
             except:
                 return None
