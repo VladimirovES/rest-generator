@@ -205,17 +205,17 @@ class PydanticModelGenerator(BaseGenerator):
     def _generate_pydantic_model(
         self, field_type: Any, current_depth: int, max_depth: int
     ) -> Any:
-        from .data_generator_pydantic import GenerateData
+        from .data_generator_pydantic import DataGen
 
         if current_depth >= max_depth:
             try:
-                from_data = GenerateData(field_type, current_depth, max_depth)
+                from_data = DataGen(field_type, current_depth, max_depth)
                 return from_data.fill_required().build()
             except:
                 return None
 
         from_data = GenerateData(field_type, current_depth + 1, max_depth)
-        return from_data.fill_all_fields().build()
+        return from_data.fill_all().build()
 
 
 class AnnotatedGenerator(BaseGenerator):
