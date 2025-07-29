@@ -10,8 +10,6 @@ class {{ class_name }}:
     def __init__(self, client: ApiClient):
         self._client = client
 
-    _service = "{{ service_path }}"
-
 {% for method in methods %}
     @allure.step("{{ method.summary }}")
     def {{ method.name }}(self,
@@ -22,7 +20,7 @@ class {{ class_name }}:
 
         """{{ method.description }}"""
 
-        path = f"{{ method.path }}"
+        path = f"{{ service_path }}{{ method.path }}"
         {{ method.http_call }}
         {{ method.return_statement }}
 
