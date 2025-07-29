@@ -22,6 +22,8 @@ class {{ class_name }}:
         {{ method.description }}
         """
 
+        {{ method.path_assignment }}
+
         {{ method.http_call }}
         {{ method.return_statement }}
 

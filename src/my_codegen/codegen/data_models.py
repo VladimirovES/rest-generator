@@ -102,14 +102,18 @@ class HttpCallBuilder:
         else:
             return self._build_post_call()
 
+    def build_path_assignment(self) -> str:
+        """Генерирует присваивание переменной path"""
+        full_path = f"{self.service_path}{self.endpoint.path}"
+        return f'path = f"{full_path}"'
+
     def _build_get_call(self) -> str:
         """GET запрос"""
         params_dict = self._build_query_params_dict(include_params=True)
         method = self.endpoint.http_method.lower()
-        path_expr = self._build_path_expression()
 
         return f"""r_json = self._client.{method}(
-            path={path_expr},
+            path=path,
             params={params_dict},
             headers=headers,
             expected_status=expected_status
@@ -118,8 +122,7 @@ class HttpCallBuilder:
     def _build_post_call(self) -> str:
         """POST/PUT/PATCH/DELETE запрос"""
         method = self.endpoint.http_method.lower()
-        path_expr = self._build_path_expression()
-        call_parts = [f"path={path_expr}"]
+        call_parts = ["path=path"]
 
         payload_parts = self._build_payload_parts()
         if payload_parts:
@@ -135,11 +138,6 @@ class HttpCallBuilder:
         return f"""r_json = self._client.{method}(
             {joined_parts}
         )"""
-
-    def _build_path_expression(self) -> str:
-        """Строит выражение для пути"""
-        full_path = f"{self.service_path}{self.endpoint.path}"
-        return f'f"{full_path}"'
 
     def _build_payload_parts(self) -> List[str]:
         """Строит части для payload"""
@@ -219,6 +217,7 @@ class MethodContext:
     expected_status: str
     required_params: List[str]
     optional_params: List[str]
+    path_assignment: str  # Новое поле для присваивания path
     http_call: str
     return_statement: str
 
@@ -239,6 +238,7 @@ class MethodContext:
             expected_status=endpoint.expected_status,
             required_params=param_builder.build_required_params(),
             optional_params=param_builder.build_optional_params(),
+            path_assignment=http_builder.build_path_assignment(),
             http_call=http_builder.build_http_call(),
             return_statement=return_builder.build_return_statement(),
         )
