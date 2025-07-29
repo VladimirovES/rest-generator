@@ -203,7 +203,7 @@ class PydanticModelGenerator(BaseGenerator):
     def _generate_pydantic_model(
         self, field_type: Any, current_depth: int, max_depth: int
     ) -> Any:
-        from .data_generator_pydantic import GenData
+        from ..data_generator_pydantic import GenData
 
         if current_depth >= max_depth:
             try:
