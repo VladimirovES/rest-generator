@@ -11,7 +11,6 @@ class {{ class_name }}:
         self._client = client
 
 {% for method in methods %}
-    @allure.step("{{ method.summary }}")
     def {{ method.name }}(self,
         {% if method.required_params %}{{ method.required_params | join(',\n        ') }},{% endif %}
         {% if method.optional_params %}{{ method.optional_params | join(',\n        ') }},{% endif %}
@@ -21,10 +20,10 @@ class {{ class_name }}:
         """
         {{ method.description }}
         """
+        with allure.step("{{ method.summary }}")
+            {{ method.path_assignment }}
 
-        {{ method.path_assignment }}
-
-        {{ method.http_call }}
+            {{ method.http_call }}
         {{ method.return_statement }}
 
 {% endfor %}

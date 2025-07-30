@@ -22,7 +22,118 @@ from my_codegen.utils.logger import allure_report, ApiRequestError, logger
 
 from my_codegen.utils.report_utils import Reporter
 
+import structlog
+from curlify2 import Curlify
+
 load_dotenv()
+
+
+class Logging:
+    def __init__(self) -> None:
+        self.log = structlog.get_logger(__name__).bind(service="api")
+
+    def log_request(self, method: str, url: str, **kwargs: Any) -> None:
+        log = self.log.bind(event_id=str(uuid.uuid4()))
+        json_data = kwargs.get("json")
+        content = kwargs.get("content")
+        data = kwargs.get("data")
+
+        # Попробуем извлечь JSON из разных источников
+        try:
+            if content:
+                json_data = json.loads(content)
+            elif data and isinstance(data, str):
+                json_data = json.loads(data)
+        except json.JSONDecodeError:
+            pass
+
+        # Собираем все данные в один словарь
+        request_info = {
+            "event": "request",
+            "method": method,
+            "url": url
+        }
+
+        if kwargs.get("params"):
+            request_info["params"] = kwargs.get("params")
+
+        if kwargs.get("headers"):
+            request_info["headers"] = kwargs.get("headers")
+
+        if json_data:
+            request_info["payload"] = json_data
+        elif data:
+            request_info["data"] = data
+
+        # Форматированный JSON для вывода и Allure
+        formatted_request = json.dumps(request_info, indent=2, ensure_ascii=False)
+        print(formatted_request)
+
+        # Allure attachment для запроса
+        allure.attach(
+            formatted_request,
+            name=f"Request: {method} {url}",
+            attachment_type=allure.attachment_type.JSON
+        )
+
+        msg = dict(
+            event="Request",
+            method=method,
+            path=url,
+        )
+
+        log.msg(**msg)
+
+    def log_response(self, response) -> None:
+        log = self.log.bind(event_id=str(uuid.uuid4()))
+
+        # Генерируем cURL команду
+        curl = Curlify(response.request).to_curl()
+        print(curl)
+
+        # Allure attachment для cURL
+        allure.attach(
+            curl,
+            name="cURL Command",
+            attachment_type=allure.attachment_type.TEXT
+        )
+
+        response_content = self._get_json(response)
+
+        # Собираем данные ответа в словарь
+        response_info = {
+            "event": "response",
+            "status_code": response.status_code,
+            "headers": dict(response.headers)
+        }
+
+        if isinstance(response_content, (dict, list)):
+            response_info["json_response"] = response_content
+        else:
+            response_info["content"] = response_content
+
+        # Форматированный JSON для вывода и Allure
+        formatted_response = json.dumps(response_info, indent=2, ensure_ascii=False)
+        print(formatted_response)
+
+        # Allure attachment для ответа
+        allure.attach(
+            formatted_response,
+            name=f"Response: {response.status_code}",
+            attachment_type=allure.attachment_type.JSON
+        )
+
+        log.msg(
+            event="Response",
+            status_code=response.status_code,
+        )
+
+    @staticmethod
+    def _get_json(response) -> dict[str, Any] | list | bytes:
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return response.content
 
 
 class RequestHandler:
@@ -30,6 +141,7 @@ class RequestHandler:
         self.auth_token = auth_token
         self.session = requests.Session()
         self._configure_retries()
+        self.logger = Logging()
 
     def _configure_retries(self):
         retries = Retry(
@@ -43,7 +155,7 @@ class RequestHandler:
         self.session.mount("https://", adapter)
 
     def _add_authorization_header(
-        self, headers: Optional[Dict[str, str]] = None
+            self, headers: Optional[Dict[str, str]] = None
     ) -> Dict[str, str]:
         headers = headers or {}
         if self.auth_token:
@@ -65,14 +177,14 @@ class RequestHandler:
             return ListModel(payload).model_dump_json()
 
     def prepare_request(
-        self,
-        method: str,
-        url: str,
-        payload: Optional[Any] = None,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        files: Optional[Dict] = None,
-        data: Optional[Union[bytes, str]] = None,
+            self,
+            method: str,
+            url: str,
+            payload: Optional[Any] = None,
+            headers: Optional[Dict] = None,
+            params: Optional[Dict] = None,
+            files: Optional[Dict] = None,
+            data: Optional[Union[bytes, str]] = None,
     ) -> requests.PreparedRequest:
 
         headers = self._add_authorization_header(headers)
@@ -93,30 +205,43 @@ class RequestHandler:
             data=data,
             files=files,
         )
+
+        # ИСПРАВЛЕНИЕ: передаем правильные данные в log_request
+        self.logger.log_request(
+            request.method,
+            request.url,
+            data=data,
+            headers=headers,
+            params=params,
+            json=payload
+        )
+
         return request.prepare()
 
     def send_request(
-        self, prepared_request: requests.PreparedRequest, path: str
+            self, prepared_request: requests.PreparedRequest, path: str
     ) -> requests.Response:
         response = self.session.send(prepared_request)
+        self.logger.log_response(response)
+
         return response
 
     def validate_response(
-        self,
-        response: requests.Response,
-        expected_status: Optional[HTTPStatus],
-        method: str,
-        payload: Optional[Dict] = None,
+            self,
+            response: requests.Response,
+            expected_status: Optional[HTTPStatus],
+            method: str,
+            payload: Optional[Dict] = None,
     ):
         if response.status_code != expected_status.value:
             raise ApiRequestError(response, expected_status, method, payload)
 
     def process_response(
-        self, response: requests.Response
+            self, response: requests.Response
     ) -> Union[Dict, List, bytes, str, None]:
         try:
             if "application/pdf" in response.headers.get(
-                "Content-Type", ""
+                    "Content-Type", ""
             ) or "bytes" in response.headers.get("Accept-Ranges", ""):
                 return response.content
             if response.status_code == HTTPStatus.NO_CONTENT:
@@ -128,23 +253,23 @@ class RequestHandler:
 
 class ApiClient:
     def __init__(
-        self, auth_token: Optional[str] = None, base_url: Optional[str] = None
+            self, auth_token: Optional[str] = None, base_url: Optional[str] = None
     ):
         self.base_url = base_url if base_url else BaseUrlSingleton.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
 
     def _send_request(
-        self,
-        method: str,
-        path: str,
-        payload: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        files: Optional[Dict] = None,
-        data: Optional[Union[bytes, str]] = None,
-        expected_status: Optional[HTTPStatus] = None,
-        **kwargs,
+            self,
+            method: str,
+            path: str,
+            payload: Optional[Dict] = None,
+            headers: Optional[Dict] = None,
+            params: Optional[Dict] = None,
+            files: Optional[Dict] = None,
+            data: Optional[Union[bytes, str]] = None,
+            expected_status: Optional[HTTPStatus] = None,
+            **kwargs,
     ) -> Union[Dict, List, bytes, None]:
         formatted_path = path.format(**kwargs)
 
@@ -163,12 +288,12 @@ class ApiClient:
         return self._request_handler.process_response(response)
 
     def get(
-        self,
-        path: str,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
+            self,
+            path: str,
+            headers: Optional[Dict] = None,
+            params: Optional[Dict] = None,
+            expected_status: HTTPStatus = HTTPStatus.OK,
+            **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "GET",
@@ -180,13 +305,13 @@ class ApiClient:
         )
 
     def post(
-        self,
-        path: str,
-        payload: Optional[Any] = None,
-        headers: Optional[Dict] = None,
-        files: Optional[Dict] = None,
-        expected_status: HTTPStatus = HTTPStatus.CREATED,
-        **kwargs,
+            self,
+            path: str,
+            payload: Optional[Any] = None,
+            headers: Optional[Dict] = None,
+            files: Optional[Dict] = None,
+            expected_status: HTTPStatus = HTTPStatus.CREATED,
+            **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "POST",
@@ -199,14 +324,14 @@ class ApiClient:
         )
 
     def put(
-        self,
-        path: str = "",
-        payload: Optional[Any] = None,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        files: Optional[Dict] = None,
-        expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
+            self,
+            path: str = "",
+            payload: Optional[Any] = None,
+            params: Optional[Dict] = None,
+            headers: Optional[Dict] = None,
+            files: Optional[Dict] = None,
+            expected_status: HTTPStatus = HTTPStatus.OK,
+            **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "PUT",
@@ -220,13 +345,13 @@ class ApiClient:
         )
 
     def patch(
-        self,
-        path: str,
-        payload: Optional[Any] = None,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
+            self,
+            path: str,
+            payload: Optional[Any] = None,
+            params: Optional[Dict] = None,
+            headers: Optional[Dict] = None,
+            expected_status: HTTPStatus = HTTPStatus.OK,
+            **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "PATCH",
@@ -239,13 +364,13 @@ class ApiClient:
         )
 
     def delete(
-        self,
-        path: str,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        payload: Optional[Any] = None,
-        expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
-        **kwargs,
+            self,
+            path: str,
+            headers: Optional[Dict] = None,
+            params: Optional[Dict] = None,
+            payload: Optional[Any] = None,
+            expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
+            **kwargs,
     ) -> Union[Dict, List]:
         return self._send_request(
             "DELETE",
