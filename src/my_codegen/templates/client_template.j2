@@ -20,8 +20,8 @@ class {{ class_name }}:
         """
         {{ method.description }}
         """
-        with allure.step("{{ method.summary }} {{ method.path_assignment }}"):
-            path={{ method.path_assignment }}
+        with allure.step("{{ method.summary }} ({{ method.path_assignment }})"):
+            path="{{ method.path_assignment }}""
 
             {{ method.http_call }}
         {{ method.return_statement }}
