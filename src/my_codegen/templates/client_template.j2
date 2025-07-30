@@ -20,7 +20,7 @@ class {{ class_name }}:
         """
         {{ method.description }}
         """
-        with allure.step("{{ method.summary }}")
+        with allure.step("{{ method.summary }}"):
             {{ method.path_assignment }}
 
             {{ method.http_call }}
