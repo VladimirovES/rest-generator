@@ -69,12 +69,13 @@ class Logging:
         formatted_request = json.dumps(request_info, indent=2, ensure_ascii=False)
         print(formatted_request)
 
-        # Allure attachment для запроса
-        allure.attach(
-            formatted_request,
-            name=f"Request: {method} {url}",
-            attachment_type=allure.attachment_type.JSON
-        )
+        # Allure attachment для запроса (только JSON данные)
+        if json_data:
+            allure.attach(
+                json.dumps(json_data, indent=2, ensure_ascii=False),
+                name=f"Request: {method} {url}",
+                attachment_type=allure.attachment_type.JSON
+            )
 
         msg = dict(
             event="Request",
@@ -116,12 +117,13 @@ class Logging:
         formatted_response = json.dumps(response_info, indent=2, ensure_ascii=False)
         print(formatted_response)
 
-        # Allure attachment для ответа
-        allure.attach(
-            formatted_response,
-            name=f"Response: {response.status_code}",
-            attachment_type=allure.attachment_type.JSON
-        )
+        # Allure attachment для ответа (только JSON данные)
+        if isinstance(response_content, (dict, list)):
+            allure.attach(
+                json.dumps(response_content, indent=2, ensure_ascii=False),
+                name=f"Response JSON: {response.status_code}",
+                attachment_type=allure.attachment_type.JSON
+            )
 
         log.msg(
             event="Response",
