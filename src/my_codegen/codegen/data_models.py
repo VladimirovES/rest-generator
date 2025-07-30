@@ -118,7 +118,7 @@ class HttpCallBuilder:
             headers=headers,
             expected_status=expected_status
         )"""
-
+    
     def _build_post_call(self) -> str:
         """POST/PUT/PATCH/DELETE запрос"""
         method = self.endpoint.http_method.lower()
@@ -217,7 +217,8 @@ class MethodContext:
     expected_status: str
     required_params: List[str]
     optional_params: List[str]
-    path_assignment: str  # Новое поле для присваивания path
+    path_assignment: str
+    method:str
     http_call: str
     return_statement: str
 
@@ -234,6 +235,7 @@ class MethodContext:
             description=endpoint.description,
             summary=endpoint.summary,
             path=endpoint.path,
+            method = endpoint.http_method.upper(),
             return_type=endpoint.return_type,
             expected_status=endpoint.expected_status,
             required_params=param_builder.build_required_params(),
