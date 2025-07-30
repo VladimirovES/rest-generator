@@ -105,7 +105,7 @@ class HttpCallBuilder:
     def build_path_assignment(self) -> str:
         """Генерирует присваивание переменной path"""
         full_path = f"{self.service_path}{self.endpoint.path}"
-        return f'path = f"{full_path}"'
+        return full_path
 
     def _build_get_call(self) -> str:
         """GET запрос"""
