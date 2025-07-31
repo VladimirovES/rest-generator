@@ -74,12 +74,10 @@ class Expect:
         if len(value) == 0:
             return "[]" if isinstance(value, list) else "()"
 
-        # Для коллекций объектов
         if value and hasattr(value[0], "__class__") and hasattr(value[0], "__dict__"):
             class_name = value[0].__class__.__name__
             return f"[{len(value)} объектов типа {class_name}]"
 
-        # Для простых коллекций
         if len(value) <= self.MAX_COLLECTION_PREVIEW:
             formatted_items = [self._format_value(item, 50) for item in value]
             return f"[{', '.join(formatted_items)}]"
@@ -116,7 +114,6 @@ class Expect:
         """Форматирует пользовательский объект."""
         class_name = value.__class__.__name__
 
-        # Попытка получить идентификатор объекта
         identifiers = []
         for attr in ["id", "name", "title", "code"]:
             if hasattr(value, attr):
@@ -141,7 +138,7 @@ class Expect:
         lines = []
 
         negation = "НЕ " if self._negated else ""
-        lines.append(f'Check field: "{self._name}"')
+        lines.append(f'"{self._name}"')
 
         if expected_formatted:
             lines.append(f"Expected: {expected_formatted}")
@@ -180,7 +177,7 @@ class Expect:
         additional_info: str = None,
     ) -> "Expect":
         """Выполняет проверку с логированием."""
-        message_step = f'Проверка: "{self._name}" {expectation}'
+        message_step = f'"{self._name}" {expectation}'
 
         with Reporter.step(message_step):
             if self._negated:
@@ -201,7 +198,7 @@ class Expect:
         """Проверяет точное равенство значений."""
         return self._check(
             self.actual == expected,
-            f"должно быть равно {self._format_value(expected)}",
+            f" равно {self._format_value(expected)}",
             expected,
         )
 
@@ -209,25 +206,25 @@ class Expect:
         """Проверяет неравенство значений."""
         return self._check(
             self.actual != expected,
-            f"не должно быть равно {self._format_value(expected)}",
+            f"не равно {self._format_value(expected)}",
             f"любое значение кроме {self._format_value(expected)}",
         )
 
     def is_none(self) -> "Expect":
         """Проверяет, что значение None."""
-        return self._check(self.actual is None, "должно быть None", "None")
+        return self._check(self.actual is None, " None", "None")
 
     def is_not_none(self) -> "Expect":
         """Проверяет, что значение не None."""
         return self._check(
-            self.actual is not None, "не должно быть None", "любое значение кроме None"
+            self.actual is not None, "не None", "любое значение кроме None"
         )
 
     def is_greater_than(self, expected: Union[int, float]) -> "Expect":
         """Проверяет, что значение больше ожидаемого."""
         return self._check(
             self.actual > expected,
-            f"должно быть больше {expected}",
+            f" больше {expected}",
             f"значение > {expected}",
         )
 
@@ -235,7 +232,7 @@ class Expect:
         """Проверяет, что значение меньше ожидаемого."""
         return self._check(
             self.actual < expected,
-            f"должно быть меньше {expected}",
+            f"меньше {expected}",
             f"значение < {expected}",
         )
 
@@ -243,7 +240,7 @@ class Expect:
         """Проверяет, что значение больше или равно ожидаемому."""
         return self._check(
             self.actual >= expected,
-            f"должно быть больше или равно {expected}",
+            f" больше или равно {expected}",
             f"значение >= {expected}",
         )
 
@@ -251,7 +248,7 @@ class Expect:
         """Проверяет, что значение меньше или равно ожидаемому."""
         return self._check(
             self.actual <= expected,
-            f"должно быть меньше или равно {expected}",
+            f" меньше или равно {expected}",
             f"значение <= {expected}",
         )
 
@@ -263,7 +260,7 @@ class Expect:
         """Проверяет, что строка содержит подстроку."""
         if not isinstance(self.actual, str):
             self._fail(
-                f"должно быть строкой для проверки contains",
+                f" строкой для проверки contains",
                 "строка",
                 f"получен тип {type(self.actual).__name__}",
             )
@@ -275,18 +272,18 @@ class Expect:
             )
             return self._check(
                 False,
-                f"должно содержать '{substring}'",
+                f"содержит '{substring}'",
                 f"строка, содержащая '{substring}'",
                 f"В строке '{preview}' подстрока не найдена",
             )
 
-        return self._check(True, f"должно содержать '{substring}'")
+        return self._check(True, f"содержит '{substring}'")
 
     def matches(self, pattern: str) -> "Expect":
         """Проверяет соответствие строки регулярному выражению."""
         if not isinstance(self.actual, str):
             self._fail(
-                "должно быть строкой для проверки regex",
+                " строкой для проверки regex",
                 "строка",
                 f"получен тип {type(self.actual).__name__}",
             )
@@ -308,14 +305,14 @@ class Expect:
             actual_length = len(self.actual)
         except TypeError:
             self._fail(
-                "должно иметь длину",
+                "имеет длину",
                 f"объект с длиной {expected_length}",
                 "объект не поддерживает len()",
             )
 
         return self._check(
             actual_length == expected_length,
-            f"должно иметь длину {expected_length}",
+            f"имеет {expected_length}",
             f"длина {expected_length}",
             f"Фактическая длина: {actual_length}",
         )
@@ -326,13 +323,13 @@ class Expect:
             actual_length = len(self.actual)
             return self._check(
                 actual_length == 0,
-                "должно быть пустым",
+                " пустым",
                 "пустая коллекция",
                 f"Коллекция содержит {actual_length} элементов",
             )
         except TypeError:
             self._fail(
-                "должно быть коллекцией для проверки пустоты",
+                " коллекцией для проверки пустоты",
                 "коллекция",
                 "объект не поддерживает len()",
             )
@@ -342,11 +339,11 @@ class Expect:
         try:
             actual_length = len(self.actual)
             return self._check(
-                actual_length > 0, "не должно быть пустым", "непустая коллекция"
+                actual_length > 0, "не  пустым", "непустая коллекция"
             )
         except TypeError:
             self._fail(
-                "должно быть коллекцией", "коллекция", "объект не поддерживает len()"
+                " коллекцией", "коллекция", "объект не поддерживает len()"
             )
 
     def contains_item(self, item: Any) -> "Expect":
@@ -368,7 +365,7 @@ class Expect:
 
                 return self._check(
                     False,
-                    f"должно содержать элемент {self._format_value(item)}",
+                    f"содержит {self._format_value(item)}",
                     f"коллекция с элементом {self._format_value(item)}",
                     hint,
                 )
@@ -379,7 +376,7 @@ class Expect:
 
         except TypeError:
             self._fail(
-                "должно быть итерируемым",
+                " итерируемым",
                 "итерируемый объект",
                 f"получен тип {type(self.actual).__name__}",
             )
@@ -404,7 +401,7 @@ class Expect:
         """Общий метод проверки сортировки."""
         if not hasattr(self.actual, "__iter__") or isinstance(self.actual, str):
             self._fail(
-                "должно быть итерируемым для проверки сортировки",
+                " итерируемым для проверки сортировки",
                 "итерируемый объект",
                 f"получен тип {type(self.actual).__name__}",
             )
@@ -414,7 +411,7 @@ class Expect:
             direction = "по возрастанию" if ascending else "по убыванию"
             return self._check(
                 True,
-                f"должно быть отсортировано {direction} (тривиально для 0-1 элементов)",
+                f" отсортировано {direction} (тривиально для 0-1 элементов)",
             )
 
         # Получаем значения для сравнения
@@ -457,13 +454,13 @@ class Expect:
 
             return self._check(
                 False,
-                f"должно быть отсортировано {direction}{key_info}",
+                f" отсортировано {direction}{key_info}",
                 f"отсортированная {direction} последовательность",
                 f"Нарушение на позиции {i}: {val1} {comparison} {val2}. Значения: {preview}",
             )
 
         return self._check(
-            is_sorted, f"должно быть отсортировано {direction}{key_info}"
+            is_sorted, f" отсортировано {direction}{key_info}"
         )
 
     def is_sorted_by_field(self, field_name: str, asc: bool = True) -> "Expect":
@@ -520,13 +517,13 @@ class Expect:
 
             # Если ни один формат не подошел
             self._fail(
-                "должно быть валидной датой",
+                " валидной датой",
                 "дата в одном из поддерживаемых форматов",
                 f"Строка '{value}' не распознана как дата. Поддерживаемые форматы: YYYY-MM-DD, DD.MM.YYYY и др.",
             )
         else:
             self._fail(
-                "должно быть датой",
+                " датой",
                 "datetime, date или строка с датой",
                 f"получен тип {type(value).__name__}",
             )
@@ -538,7 +535,7 @@ class Expect:
 
         return self._check(
             actual_dt > threshold_dt,
-            f"должно быть после {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
+            f" после {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
             f"дата после {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
             f"Разница: {actual_dt - threshold_dt}",
         )
@@ -550,7 +547,7 @@ class Expect:
 
         return self._check(
             actual_dt < threshold_dt,
-            f"должно быть до {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
+            f" до {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
             f"дата до {threshold_dt.strftime('%Y-%m-%d %H:%M:%S')}",
             f"Разница: {threshold_dt - actual_dt}",
         )
@@ -562,7 +559,7 @@ class Expect:
 
         return self._check(
             actual_dt.date() == today,
-            f"должно быть сегодняшней датой ({today})",
+            f" сегодняшней датой ({today})",
             f"дата {today}",
             f"Дата {actual_dt.date()}",
         )
@@ -586,7 +583,7 @@ class Expect:
 
         return self._check(
             is_around,
-            f"должно быть около текущего времени (±{minutes} мин)",
+            f" около текущего времени (±{minutes} мин)",
             f"время между {min_time.strftime('%H:%M:%S')} и {max_time.strftime('%H:%M:%S')}",
             f"Разница с текущим временем: {diff_str}",
         )
@@ -605,7 +602,7 @@ class Expect:
 
         return self._check(
             is_close,
-            f"должно быть близко к текущему времени (±{seconds} сек)",
+            f" близко к текущему времени (±{seconds} сек)",
             f"время между {min_time.strftime('%H:%M:%S')} и {max_time.strftime('%H:%M:%S')}",
             f"Разница: {time_diff:.1f} секунд",
         )
@@ -626,7 +623,7 @@ class Expect:
 
         return self._check(
             is_just_created,
-            f"должно быть только что создано (в пределах {tolerance_minutes} мин)",
+            f" только что создано (в пределах {tolerance_minutes} мин)",
             f"время создания между {min_time.strftime('%H:%M:%S')} и {now.strftime('%H:%M:%S')}",
             additional,
         )

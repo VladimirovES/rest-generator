@@ -57,7 +57,7 @@ class SwaggerProcessor:
             expected_status=expected_status,
             return_type=return_type,
             description=operation.description or "",
-            summary=operation.summary or "", 
+            summary=operation.summary or "",
         )
 
     def extract_imports(self) -> List[str]:
@@ -96,7 +96,7 @@ class SwaggerProcessor:
         return None
 
     def _extract_response_info(
-        self, responses: Dict[str, SwaggerResponse]
+            self, responses: Dict[str, SwaggerResponse]
     ) -> tuple[str, str]:
         expected_status = "OK"
         return_type = "Any"
@@ -146,7 +146,7 @@ class SwaggerProcessor:
         return type_mapping.get(openapi_type, "Any")
 
     def _extract_parameters(
-        self, parameters: List[SwaggerParameter], location: str
+            self, parameters: List[SwaggerParameter], location: str
     ) -> List[Parameter]:
         result = []
         for param in parameters:
@@ -161,7 +161,7 @@ class SwaggerProcessor:
         return result
 
     def _determine_method_name(
-        self, http_method: str, path: str, operation: SwaggerOperation
+            self, http_method: str, path: str, operation: SwaggerOperation
     ) -> str:
         if operation.summary:
             raw_name = operation.summary
