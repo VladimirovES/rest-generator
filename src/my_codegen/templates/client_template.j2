@@ -2,7 +2,7 @@ from http import HTTPStatus
 import allure
 
 from typing import Any, Optional, List, Dict
-from my_codegen.rest_client.api_client import ApiClient
+from my_codegen.rest_client.client import ApiClient
 from {{ models_import_path }} import {{ imports | join(', ') }}
 
 class {{ class_name }}:
