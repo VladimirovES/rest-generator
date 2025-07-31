@@ -2,7 +2,7 @@ from typing import Union, Dict, List, Optional, Any
 from http import HTTPStatus
 
 from my_codegen.utils.base_url import BaseUrlSingleton
-from .processor import RequestHandler
+from my_codegen.rest_client.proccesor import RequestHandler
 
 
 class ApiClient:
