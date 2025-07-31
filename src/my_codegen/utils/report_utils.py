@@ -11,18 +11,18 @@ class Reporter:
             @wraps(func)
             def wrapper(*args, **kwargs):
                 logger.info("=" * 100)
-                logger.info(f"Начало теста: '{title_text}'")
+                logger.info(f"StartTest: '{title_text}'")
                 logger.info("-" * 100)
 
                 try:
                     result = func(*args, **kwargs)
                     logger.info("-" * 100)
-                    logger.info(f"Тест успешно завершен: '{title_text}'")
+                    logger.info(f"Test Passed: '{title_text}'")
                     logger.info("=" * 100)
                     return result
                 except Exception as e:
                     logger.info("-" * 100)
-                    logger.error(f"Тест провален: '{title_text}' - {str(e)}")
+                    logger.error(f"Test Failed: '{title_text}' - {str(e)}")
                     logger.info("=" * 100)
                     raise
 
@@ -31,52 +31,39 @@ class Reporter:
         return decorator
 
     @staticmethod
-    def description(desc_text):
-        def decorator(func):
-            @allure.description(desc_text)
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
+    def step(name):
+        allure_step = allure.step(name)
 
-            return wrapper
+        class AllureStepContext:
+            def __enter__(self):
+                logger.info(f"{name}")
+                allure_step.__enter__()
+                return self
 
-        return decorator
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                return allure_step.__exit__(exc_type, exc_val, exc_tb)
 
-    @staticmethod
-    def id(id_value):
-        def decorator(func):
-            @allure.id(id_value)
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
+        return AllureStepContext()
 
-            return wrapper
 
-        return decorator
+    description = allure.description
+    feature = allure.feature
+    story = allure.story
+    epic = allure.epic
+    severity = allure.severity
+    tag = allure.tag
+    link = allure.link
+    issue = allure.issue
+    testcase = allure.testcase
+    suite = allure.suite
+    sub_suite = allure.sub_suite
+    parent_suite = allure.parent_suite
+    label = allure.label
+    id = allure.id
 
-    @staticmethod
-    def tags(*tags):
-        def decorator(func):
-            for tag in tags:
-                func = allure.tag(tag)(func)
-            return func
-
-        return decorator
-
-    @staticmethod
-    def link(url, name=None, link_type=None):
-        def decorator(func):
-            if link_type:
-                func = allure.link(url, name, link_type)(func)
-            else:
-                func = allure.link(url, name)(func)
-            return func
-
-        return decorator
-
-    @staticmethod
-    def attach(file_path, name=None):
-        allure.attach.file(file_path, name=name)
+    attach = allure.attach
+    attach_file = allure.attach.file
+    dynamic = allure.dynamic
 
     @staticmethod
     def message(message_text):
@@ -85,50 +72,9 @@ class Reporter:
         )
 
     @staticmethod
-    def step(name):
-        return allure.step(name)
-
-    @staticmethod
-    def general_step(name, description=None):
-        def decorator(func):
-            func = allure.step(name)(func)
-            return func
-
-        return decorator
-
-    @staticmethod
-    def suite(suite_name):
-        def decorator(obj):
-            if isinstance(obj, type):
-                return allure.suite(suite_name)(obj)
-            else:
-                @allure.suite(suite_name)
-                @wraps(obj)
-                def wrapper(*args, **kwargs):
-                    return obj(*args, **kwargs)
-
-                return wrapper
-
-        return decorator
-
-    @staticmethod
-    def sub_suite(sub_suite_name):
-        def decorator(obj):
-            if isinstance(obj, type):
-                return allure.sub_suite(sub_suite_name)(obj)
-            else:
-                @allure.sub_suite(sub_suite_name)
-                @wraps(obj)
-                def wrapper(*args, **kwargs):
-                    return obj(*args, **kwargs)
-
-                return wrapper
-
-        return decorator
-
-    @staticmethod
     def attach_bytes(content, name=None, attachment_type=None):
         if attachment_type:
             allure.attach(content, name=name, attachment_type=attachment_type)
         else:
             allure.attach(content, name=name)
+
