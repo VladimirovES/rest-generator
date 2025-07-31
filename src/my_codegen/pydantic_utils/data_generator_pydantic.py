@@ -14,7 +14,6 @@ __all__ = ["GenData", "RandomValueGenerator", "fake"]
 
 
 class GenData:
-    """Генератор данных для Pydantic моделей"""
 
     def __init__(
         self,
@@ -30,7 +29,6 @@ class GenData:
         self.use_smart_generation = use_smart_generation
 
     def _fill_fields(self, required_only: bool = False, optional_only: bool = False):
-        """Заполняет поля модели"""
         fields = self.model_class.model_fields
 
         for field_name, field_info in fields.items():

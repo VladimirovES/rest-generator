@@ -250,7 +250,7 @@ class AnnotatedGenerator(BaseGenerator):
                 if hasattr(meta, "max_length") and meta.max_length is not None:
                     max_len = max(1, int(meta.max_length))
 
-                # Если есть constraints, проверяем и их
+                # Если есть constraints, проверяем их
                 if hasattr(meta, "constraints") and meta.constraints:
                     constraints = meta.constraints
                     if (

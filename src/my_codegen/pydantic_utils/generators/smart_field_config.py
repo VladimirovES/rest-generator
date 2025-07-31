@@ -5,7 +5,6 @@ fake = Faker()
 
 
 class SmartFieldConfig:
-    """Конфигурация генерации полей с faker"""
 
     EXACT_MAPPINGS = {
         "first_name": lambda: fake.first_name(),
