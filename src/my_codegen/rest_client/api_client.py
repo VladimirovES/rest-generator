@@ -1,7 +1,7 @@
 from typing import Union, Dict, List, Optional, Any
 from http import HTTPStatus
 
-from my_codegen.utils.base_url import BaseUrlSingleton
+from my_codegen.utils.base_url import ConfigUrl
 from my_codegen.rest_client.proccesor import RequestHandler
 
 
@@ -10,7 +10,7 @@ class ApiClient:
             self, auth_token: Optional[str] = None,
             base_url: Optional[str] = None
     ):
-        self.base_url = base_url if base_url else BaseUrlSingleton.get_base_url()
+        self.base_url = base_url if base_url else ConfigUrl.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
 
