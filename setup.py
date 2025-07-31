@@ -1,8 +1,8 @@
 import setuptools
 
 setuptools.setup(
-    name="my-api-client",
-    version="0.1.0",
+    name="rest_gen",
+    version="1.2.0",
     description="API client generator library",
     author="Vladimirov Evgeniy",
     url="https://github.com/vladimiroves/api-client-generator",
@@ -47,13 +47,11 @@ setuptools.setup(
         "six==1.17.0",
         "typing_extensions==4.12.2",
         "urllib3==2.3.0",
-        "testit-adapter-pytest==3.5.5.post530",
-        "testit-api-client==6.0.1.post530",
-        "testit-python-commons==3.5.5.post530"
+
     ],
     entry_points={
         "console_scripts": [
-            "my-api-client=my_codegen.main:main",
+            "rest_gen=my_codegen.main:main",
         ],
     },
     python_requires=">=3.7",
