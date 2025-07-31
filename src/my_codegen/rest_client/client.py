@@ -1,7 +1,7 @@
 from typing import Union, Dict, List, Optional, Any
 from http import HTTPStatus
 
-from my_codegen.utils.base_url import ConfigUrl
+from my_codegen.rest_client.base_url import ConfigUrl
 from my_codegen.rest_client.proccesor import RequestHandler
 
 
