@@ -13,7 +13,7 @@
 Установите пакет со всеми зависимостями через `pip`:
 
 ```bash
-pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-generator.git@master
+pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-generator.git@update-all
 ```
 
 # Генерация случайных данных для Pydantic моделей
@@ -25,17 +25,22 @@ pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-
 
 ## Как использовать
 ```bash
-my-api-client --swagger-url <URL_к_Swagger_JSON>
-my-api-client --swagger-url my-api-client --swagger-url <URL_к_Swagger_JSON> --django
+rest_gen --swagger-url <URL_к_Swagger_JSON>
 ```
 ### Структура, создаваемая в проекте
 ```
 http_clients/
-└── <service_name>/
+└── <service_name_1>/
     ├── models.py        # Pydantic модели для запросов (Request) и ответов (Response)
-    ├── facade.py        # Локальный фасад, объединяющий клиентские классы
+    ├── facade.py        # Фасад, объединяющий клиентские классы сервиса
     └── endpoints/       # Клиентские классы, сгенерированные по тегам
          ├── <tag1>_client.py
          ├── <tag2>_client.py
          └── ...
+└── <service_name_2>/
+    ├── models.py        
+         ├── <tag1>_client.py
+         ├── <tag2>_client.py
+         └── ...
+└──api_facade.py  # Фасад, объединяющий фасады сервисов
 ```

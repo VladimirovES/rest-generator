@@ -5,7 +5,6 @@ setuptools.setup(
     version="1.2.0",
     description="API client generator library",
     author="Vladimirov Evgeniy",
-    url="https://github.com/vladimiroves/api-client-generator",
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
