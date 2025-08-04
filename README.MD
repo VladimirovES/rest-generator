@@ -30,17 +30,19 @@ rest_gen --swagger-url <URL_к_Swagger_JSON>
 ### Структура, создаваемая в проекте
 ```
 http_clients/
-└── <service_name_1>/
-    ├── models.py        # Pydantic модели для запросов (Request) и ответов (Response)
-    ├── facade.py        # Фасад, объединяющий клиентские классы сервиса
-    └── endpoints/       # Клиентские классы, сгенерированные по тегам
-         ├── <tag1>_client.py
-         ├── <tag2>_client.py
-         └── ...
-└── <service_name_2>/
-    ├── models.py        
-         ├── <tag1>_client.py
-         ├── <tag2>_client.py
-         └── ...
-└──api_facade.py  # Фасад, объединяющий фасады сервисов
+├── <service_name_1>/
+│   ├── models.py        # Pydantic модели для запросов (Request) и ответов (Response)
+│   ├── facade.py        # Фасад, объединяющий клиентские классы сервиса
+│   └── endpoints/       # Клиентские классы, сгенерированные по тегам
+│        ├── <tag1>_client.py
+│        ├── <tag2>_client.py
+│        └── ...
+├── <service_name_2>/
+│   ├── models.py        
+│   ├── facade.py        
+│   └── endpoints/       
+│        ├── <tag1>_client.py
+│        ├── <tag2>_client.py
+│        └── ...
+└── api_facade.py        # Фасад, объединяющий фасады сервисов
 ```
