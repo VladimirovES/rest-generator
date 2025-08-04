@@ -18,11 +18,26 @@ pip install git+ssh://git@liis-it.gitlab.yandexcloud.net/inner/tests/api-client-
 
 # Генерация случайных данных для Pydantic моделей
 
-Этот модуль позволяет автоматически генерировать случайны данные для любых Pydantic-моделей. Он особенно полезен для тестирования, создания фиктивных данных и заполнения запросов или ответов, определённых в Swagger (OpenAPI) спецификации.
+Этот модуль позволяет автоматически генерировать случайны данные для любых Pydantic-моделей.
 
-- **GenerateData**  
-  Использует `RandomValueGenerator` для заполнения всех (или только обязательных/опциональных) полей Pydantic-модели и создания экземпляра модели без полной валидации.
+**GenData**  
+  Заполнения всех (или только обязательных/опциональных) полей Pydantic-модели и создания экземпляра модели без полной валидации.
+```
+# Заполнить только обязательные поля
+instance = GenData(ApplicationResponse).fill_required().build()
 
+# Заполнить только опциональные поля
+instance = GenData(ApplicationResponse).fill_optional().build()
+
+# Получить экземпляр модели со всеми заполненными полями
+model_instance = GenData(ApplicationResponse).fill_all().build()
+
+# Генерация всех полей модели и получение JSON
+json_data = GenData(ApplicationResponse).fill_all().build().model_dump_json()
+
+# Получить словарь
+data_dict = GenData(ApplicationResponse).fill_all().build().model_dump()
+```
 ## Как использовать
 ```bash
 rest_gen --swagger-url <URL_к_Swagger_JSON>
@@ -32,7 +47,7 @@ rest_gen --swagger-url <URL_к_Swagger_JSON>
 http_clients/
 ├── <service_name_1>/
 │   ├── models.py        # Pydantic модели для запросов (Request) и ответов (Response)
-│   ├── facade.py        # Фасад, объединяющий клиентские классы сервиса
+│   ├── facade.py        # Локальный фасад, объединяющий клиентские классы сервиса
 │   └── endpoints/       # Клиентские классы, сгенерированные по тегам
 │        ├── <tag1>_client.py
 │        ├── <tag2>_client.py
@@ -44,5 +59,5 @@ http_clients/
 │        ├── <tag1>_client.py
 │        ├── <tag2>_client.py
 │        └── ...
-└── api_facade.py        # Фасад, объединяющий фасады сервисов
+└── api_facade.py        # Глобальный фасад, объединяющий локальные фасады сервисов
 ```
