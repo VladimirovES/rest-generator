@@ -28,6 +28,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "autoflake>=2.3.0",
     "black>=24.0.0",
+    "allure-pytest>=2.13.0",
 ]
 
 [project.optional-dependencies]
@@ -36,7 +37,6 @@ dev = [
     "isort>=5.13.0",
     "mypy>=1.0.0",
     "pytest>=8.0.0",
-    "allure-pytest>=2.13.0",
 ]
 
 [project.scripts]
