@@ -11,7 +11,7 @@ class ModelGenerator:
         self.models_path = f"{models_file}.py"
 
     def generate_models(self) -> None:
-        """Генерирует Pydantic модели из Swagger через datamodel-codegen"""
+        """Generate Pydantic models from Swagger via datamodel-codegen"""
         cmd_parts = [
             "datamodel-codegen",
             f"--input {self.swagger_path}",
@@ -30,7 +30,7 @@ class ModelGenerator:
         self._fix_root_models()
 
     def _fix_root_models(self) -> None:
-        """Заменяет простые RootModel на type aliases"""
+        """Replace simple RootModel with type aliases"""
         if not os.path.exists(self.models_path):
             return
 
@@ -56,7 +56,7 @@ class ModelGenerator:
             f.write(content)
 
     def _remove_rootmodel_import(self, content: str) -> str:
-        """Убирает импорт RootModel из файла"""
+        """Remove RootModel import from file"""
         lines = content.split("\n")
         new_lines = []
 
@@ -71,7 +71,7 @@ class ModelGenerator:
         return "\n".join(new_lines)
 
     def _clean_rootmodel_from_import(self, line: str) -> str:
-        """Убирает RootModel из строки импорта pydantic"""
+        """Remove RootModel from pydantic import line"""
         prefix = "from pydantic import "
         if not line.strip().startswith(prefix):
             return line
@@ -81,12 +81,12 @@ class ModelGenerator:
         filtered_imports = [imp for imp in imports_list if imp != "RootModel"]
 
         if not filtered_imports:
-            return ""  # Убираем всю строку если импортов не осталось
+            return ""  # Remove entire line if no imports left
 
         return f"{prefix}{', '.join(filtered_imports)}"
 
     def fix_models_inheritance(self) -> None:
-        """Заменяет BaseModel на BaseConfigModel и фиксит импорты"""
+        """Replace BaseModel with BaseConfigModel and fix imports"""
         if not os.path.exists(self.models_path):
             return
 
@@ -99,17 +99,17 @@ class ModelGenerator:
             f.writelines(lines)
 
     def _read_file(self) -> List[str]:
-        """Читает файл моделей"""
+        """Read models file"""
         with open(self.models_path, "r", encoding="utf-8") as f:
             return f.readlines()
 
     def _replace_base_model(self, lines: List[str]) -> List[str]:
-        """Заменяет BaseModel на BaseConfigModel"""
+        """Replace BaseModel with BaseConfigModel"""
         base_model_pattern = re.compile(r"\bBaseModel\b")
         return [base_model_pattern.sub("BaseConfigModel", line) for line in lines]
 
     def _fix_pydantic_imports(self, lines: List[str]) -> List[str]:
-        """Убирает BaseModel из pydantic импортов"""
+        """Remove BaseModel from pydantic imports"""
         new_lines = []
 
         for line in lines:
@@ -123,7 +123,7 @@ class ModelGenerator:
         return new_lines
 
     def _clean_pydantic_import(self, line: str) -> str:
-        """Убирает BaseModel из строки импорта pydantic"""
+        """Remove BaseModel from pydantic import line"""
         prefix = "from pydantic import "
         after_import = line.strip()[len(prefix) :]
 
@@ -138,7 +138,7 @@ class ModelGenerator:
         return f"{prefix}{', '.join(filtered_imports)}\n"
 
     def _add_config_import_if_needed(self, lines: List[str]) -> List[str]:
-        """Добавляет импорт BaseConfigModel если его нет"""
+        """Add BaseConfigModel import if it's missing"""
         config_import = (
             "from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel\n"
         )
@@ -156,7 +156,7 @@ class ModelGenerator:
         return lines
 
     def _find_last_import_index(self, lines: List[str]) -> int:
-        """Находит индекс последней строки импорта"""
+        """Find index of last import line"""
         last_import_index = -1
         for idx, line in enumerate(lines):
             stripped = line.strip()
@@ -165,14 +165,21 @@ class ModelGenerator:
         return last_import_index
 
     def post_process_code(self, output_dir: str) -> None:
-        """Убирает неиспользуемые импорты"""
-        cmd_parts = [
-            "autoflake",
-            "--remove-all-unused-imports",
-            "--recursive",
-            "--in-place",
-            f"'{output_dir}'",
-        ]
-        run_command(" ".join(cmd_parts))
+        """Remove unused imports and format code"""
+        try:
+            # Remove unused imports with autoflake
+            cmd_parts = [
+                "autoflake",
+                "--remove-all-unused-imports",
+                "--recursive",
+                "--in-place",
+                f"'{output_dir}'",
+            ]
+            run_command(" ".join(cmd_parts))
 
-        run_command(f"black '{output_dir}'")
+            # Format code with black
+            run_command(f"black '{output_dir}'")
+        except Exception as e:
+            # Log warning but don't fail the entire process
+            print(f"Warning: Code formatting failed: {e}")
+            print("Generated code may not be formatted, but functionality is preserved.")
