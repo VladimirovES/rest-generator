@@ -1,5 +1,5 @@
 {% set docstring_indent = '    ' %}
-from typing import Optional
+from my_codegen.rest_client.client import ApiClient
 
 {% for imp in imports %}
 from .endpoints.{{ imp.module_name }} import {{ imp.class_name }}
@@ -7,7 +7,9 @@ from .endpoints.{{ imp.module_name }} import {{ imp.class_name }}
 
 
 class {{ facade_class_name }}:
-    def __init__(self, auth_token: Optional[str] = None):
+    def __init__(self, client: ApiClient):
+        self._client = client
+
         {% for imp in imports %}
-        self.{{ imp.attribute_name }} = {{ imp.class_name }}(auth_token)
+        self.{{ imp.attribute_name }} = {{ imp.class_name }}(self._client)
         {% endfor %}
