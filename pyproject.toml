@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rest-generator-cli"
+dynamic = ["version"]
+description = "API client generator library"
+authors = [{name = "Vladimirov Evgeniy"}]
+readme = "README.MD"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.1.0",
+    "datamodel-code-generator>=0.26.0",
+    "Jinja2>=3.1.0",
+    "pydantic>=2.10.0",
+    "PyYAML>=6.0.0",
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0.0",
+    "ruff>=0.8.0",
+    "autoflake>=2.3.0",
+    "isort>=5.13.0",
+    "mypy>=1.0.0",
+    "pytest>=8.0.0",
+    "allure-pytest>=2.13.0",
+]
+
+[project.scripts]
+rest_gen = "my_codegen.main:main"
+
+[project.urls]
+Homepage = "https://github.com/evgenyvladimirov/rest-generator"
+Repository = "https://github.com/evgenyvladimirov/rest-generator"
+Issues = "https://github.com/evgenyvladimirov/rest-generator/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic]
+version = {attr = "my_codegen.__version__"}
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
