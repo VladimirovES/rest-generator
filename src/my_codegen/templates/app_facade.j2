@@ -1,6 +1,7 @@
 
 {% set docstring_indent = '    ' %}
 from typing import Optional
+from my_codegen.rest_client.client import ApiClient
 
 {% for srv in services %}
 from http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
@@ -8,7 +9,7 @@ from http_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
 
 
 class ApiFacade:
-    def __init__(self, auth_token: Optional[str] = None):
+    def __init__(self, client: ApiClient):
         {% for srv in services %}
-        self.{{ srv.service_name }} = {{ srv.api_class }}(auth_token)
+        self.{{ srv.service_name }} = {{ srv.api_class }}(client)
         {% endfor %}
