@@ -10,6 +10,16 @@ from my_codegen.swagger.swagger_models import (
     SwaggerResponse,
     SwaggerParameter,
 )
+from my_codegen.constants import (
+    SUPPORTED_HTTP_METHODS,
+    DEFAULT_TAG,
+    CONTENT_TYPE_JSON,
+    CONTENT_TYPE_MULTIPART,
+    CONTENT_TYPE_OCTET_STREAM,
+    CONTENT_TYPE_TEXT_PLAIN,
+    SUCCESS_STATUS_PREFIXES,
+    OPENAPI_TYPE_MAPPING,
+)
 
 
 class SwaggerProcessor:
@@ -21,18 +31,15 @@ class SwaggerProcessor:
 
         for path_str, path_obj in self.swagger_spec.paths.items():
             methods = {
-                "get": path_obj.get,
-                "post": path_obj.post,
-                "put": path_obj.put,
-                "patch": path_obj.patch,
-                "delete": path_obj.delete,
+                method: getattr(path_obj, method, None)
+                for method in SUPPORTED_HTTP_METHODS
             }
 
             for http_method, operation in methods.items():
                 if operation is None:
                     continue
 
-                for tag in operation.tags or ["default"]:
+                for tag in operation.tags or [DEFAULT_TAG]:
                     endpoint = self._create_endpoint(
                         path_str, http_method, operation, tag
                     )
@@ -68,7 +75,7 @@ class SwaggerProcessor:
             for name in self.swagger_spec.components.schemas.keys()
         ]
 
-    # -- private helpers --
+    # Private helper methods
     @staticmethod
     def _remove_underscores(name: str) -> str:
         segments = name.split("_")
@@ -89,7 +96,7 @@ class SwaggerProcessor:
 
         content = request_body.content
 
-        for ctype_key in ("application/json", "multipart/form-data"):
+        for ctype_key in (CONTENT_TYPE_JSON, CONTENT_TYPE_MULTIPART):
             if ctype_key in content:
                 schema = content[ctype_key].get("schema", {})
                 return self._map_openapi_type_to_python(schema)
@@ -102,17 +109,17 @@ class SwaggerProcessor:
         return_type = "Any"
 
         for status_code, response_obj in responses.items():
-            if status_code.startswith("2"):
+            if any(status_code.startswith(prefix) for prefix in SUCCESS_STATUS_PREFIXES):
                 expected_status = self._get_http_status_enum(status_code)
 
                 resp_content = response_obj.content
 
-                if "application/json" in resp_content:
-                    schema = resp_content["application/json"].get("schema", {})
+                if CONTENT_TYPE_JSON in resp_content:
+                    schema = resp_content[CONTENT_TYPE_JSON].get("schema", {})
                     return_type = self._map_openapi_type_to_python(schema)
-                elif "application/octet-stream" in resp_content:
+                elif CONTENT_TYPE_OCTET_STREAM in resp_content:
                     return_type = "bytes"
-                elif "text/plain" in resp_content:
+                elif CONTENT_TYPE_TEXT_PLAIN in resp_content:
                     return_type = "str"
                 break
 
@@ -135,15 +142,7 @@ class SwaggerProcessor:
             items = schema.get("items", {})
             return f"List[{self._map_openapi_type_to_python(items)}]"
 
-        type_mapping = {
-            "string": "str",
-            "integer": "int",
-            "number": "float",
-            "boolean": "bool",
-            "object": "Dict[str, Any]",
-            "any": "Any",
-        }
-        return type_mapping.get(openapi_type, "Any")
+        return OPENAPI_TYPE_MAPPING.get(openapi_type, "Any")
 
     def _extract_parameters(
             self, parameters: List[SwaggerParameter], location: str

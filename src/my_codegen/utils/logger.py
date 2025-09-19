@@ -1,22 +1,37 @@
-import json
 import logging
 import sys
-import uuid
-import textwrap
+from typing import Optional
 
 
-def configure_logging():
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+def configure_logging(level: int = logging.INFO) -> logging.Logger:
+    """Configure and return a logger instance"""
+    logger = logging.getLogger("my_codegen")
 
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
+    # Prevent duplicate handlers
+    if logger.handlers:
+        return logger
 
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    ch.setFormatter(formatter)
+    logger.setLevel(level)
 
-    logger.addHandler(ch)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    return logger
 
 
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Get a logger instance"""
+    if name:
+        return logging.getLogger(f"my_codegen.{name}")
+    return logging.getLogger("my_codegen")
+
+
+# Configure the main logger
 configure_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger()

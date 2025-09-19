@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from my_codegen.constants import PRIMITIVE_TYPES
+
 
 @dataclass
 class Parameter:
@@ -40,13 +42,13 @@ class SubPath:
 
 
 class ParameterBuilder:
-    """Строит списки параметров для методов"""
+    """Builds parameter lists for methods"""
 
     def __init__(self, endpoint: Endpoint):
         self.endpoint = endpoint
 
     def build_required_params(self) -> List[str]:
-        """Собирает required параметры"""
+        """Build required parameters"""
         params = []
         params.extend(self._build_path_params())
         params.extend(self._build_required_query_params())
@@ -57,7 +59,7 @@ class ParameterBuilder:
         return params
 
     def build_optional_params(self) -> List[str]:
-        """Собирает optional параметры"""
+        """Build optional parameters"""
         params = []
         params.extend(self._build_optional_query_params())
 
@@ -89,26 +91,26 @@ class ParameterBuilder:
         )
 
 class HttpCallBuilder:
-    """Собирает часть HTTP вызовы"""
+    """Builds HTTP call parts"""
 
     def __init__(self, endpoint: Endpoint, service_path: str = ""):
         self.endpoint = endpoint
         self.service_path = service_path
 
     def build_http_call(self) -> str:
-        """Генерирует HTTP вызов"""
+        """Generate HTTP call"""
         if self.endpoint.http_method == "GET":
             return self._build_get_call()
         else:
             return self._build_post_call()
 
     def build_path_assignment(self) -> str:
-        """Генерирует присваивание переменной path"""
+        """Generate path variable assignment"""
         full_path = f"{self.service_path}{self.endpoint.path}"
         return full_path
 
     def _build_get_call(self) -> str:
-        """GET запрос"""
+        """GET request"""
         params_dict = self._build_query_params_dict(include_params=True)
         method = self.endpoint.http_method.lower()
 
@@ -120,7 +122,7 @@ class HttpCallBuilder:
         )"""
     
     def _build_post_call(self) -> str:
-        """POST/PUT/PATCH/DELETE запрос"""
+        """POST/PUT/PATCH/DELETE request"""
         method = self.endpoint.http_method.lower()
         call_parts = ["path=path"]
 
@@ -140,7 +142,7 @@ class HttpCallBuilder:
         )"""
 
     def _build_payload_parts(self) -> List[str]:
-        """Строит части для payload"""
+        """Build payload parts"""
         if not self.endpoint.payload_type:
             return []
 
@@ -150,7 +152,7 @@ class HttpCallBuilder:
         return []
 
     def _build_query_params_dict(self, include_params: bool = False) -> str:
-        """Строит словарь query параметров"""
+        """Build query parameters dictionary"""
         params_dict = "{"
         for param in self.endpoint.query_params:
             params_dict += f"'{param.name}': {param.name}, "
@@ -163,13 +165,13 @@ class HttpCallBuilder:
 
 
 class ReturnStatementBuilder:
-    """Строит return statements"""
+    """Builds return statements"""
 
     def __init__(self, endpoint: Endpoint):
         self.endpoint = endpoint
 
     def build_return_statement(self) -> str:
-        """Генерирует return statement"""
+        """Generate return statement"""
         if self.endpoint.return_type == "Any":
             return "return r_json"
 
@@ -188,7 +190,7 @@ class ReturnStatementBuilder:
         """List[Model] return"""
         inner_type = self.endpoint.return_type[5:-1]
 
-        if inner_type in {"str", "int", "float", "bool", "Any"}:
+        if inner_type in PRIMITIVE_TYPES:
             return f"return [item for item in r_json] {condition}"
         else:
             return f"return [{inner_type}(**item) for item in r_json] {condition}"
@@ -202,12 +204,12 @@ class ReturnStatementBuilder:
         return f"return {self.endpoint.return_type}(**r_json) {condition}"
 
     def _is_primitive_type(self) -> bool:
-        return self.endpoint.return_type in {"str", "int", "float", "bool"}
+        return self.endpoint.return_type in PRIMITIVE_TYPES
 
 
 @dataclass
 class MethodContext:
-    """Класс для рендеринга в шаблонах контента"""
+    """Class for rendering content in templates"""
 
     name: str
     description: str
@@ -224,7 +226,7 @@ class MethodContext:
 
     @classmethod
     def from_endpoint(cls, endpoint: Endpoint, service_path: str = "") -> "MethodContext":
-        """Конвертирует Endpoint в MethodContext"""
+        """Convert Endpoint to MethodContext"""
 
         param_builder = ParameterBuilder(endpoint)
         http_builder = HttpCallBuilder(endpoint, service_path)

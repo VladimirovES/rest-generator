@@ -24,7 +24,7 @@ class ClientGenerator:
     def generate_clients(
         self, output_dir: str, module_name: str, service_path: str
     ) -> Dict[str, str]:
-        """Генерирует клиентские файлы, группируя endpoints по тегам"""
+        """Generate client files, grouping endpoints by tags"""
         os.makedirs(output_dir, exist_ok=True)
 
         grouped_endpoints = self._group_endpoints_by_tag()
@@ -43,14 +43,14 @@ class ClientGenerator:
         return file_to_class
 
     def _group_endpoints_by_tag(self) -> Dict[str, List[Endpoint]]:
-        """Группирует endpoints по тегам"""
+        """Group endpoints by tags"""
         grouped = {}
         for endpoint in self.endpoints:
             grouped.setdefault(endpoint.tag, []).append(endpoint)
         return grouped
 
     def _tag_to_class_name(self, tag: str) -> str:
-        """Конвертирует тег в название класса: 'user-management' -> 'UserManagement'"""
+        """Convert tag to class name: 'user-management' -> 'UserManagement'"""
         normalized_tag = tag.replace("-", "_")
         parts = re.split(r"[\s_]+", normalized_tag)
         return "".join(word.capitalize() for word in parts if word)
@@ -64,7 +64,7 @@ class ClientGenerator:
         module_name: str,
         service_path: str,
     ) -> None:
-        """Генерирует файл клиента"""
+        """Generate client file"""
         method_contexts = [MethodContext.from_endpoint(ep) for ep in endpoints]
 
         rendered_content = self.template.render(

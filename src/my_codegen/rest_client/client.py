@@ -1,12 +1,12 @@
 from typing import Union, Dict, List, Optional, Any
 from http import HTTPStatus
 
-from helpers.rest_client.base_url import ConfigUrl
-from helpers.rest_client.proccesor import RequestHandler
+from my_codegen.rest_client.base_url import ConfigUrl
+from my_codegen.rest_client.proccesor import RequestHandler
 
 
 class ApiClient:
-    def __init__(self, auth_token, base_url: Optional[str] = None):
+    def __init__(self, auth_token: Optional[str], base_url: Optional[str] = None):
         self.base_url = base_url if base_url else ConfigUrl.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
@@ -15,14 +15,14 @@ class ApiClient:
         self,
         method: str,
         path: str,
-        payload: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        files: Optional[Dict] = None,
+        payload: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict[str, Any]] = None,
         data: Optional[Union[bytes, str]] = None,
         expected_status: Optional[HTTPStatus] = None,
-        **kwargs,
-    ) -> Union[Dict, List, bytes, None]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any], bytes, None]:
         formatted_path = path.format(**kwargs)
         url = f"{self.base_url}{formatted_path}"
 
@@ -41,11 +41,11 @@ class ApiClient:
     def get(
         self,
         path: str,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
         expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
-    ) -> Union[Dict, List]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any]]:
         return self._send_request(
             "GET",
             path,
@@ -59,11 +59,11 @@ class ApiClient:
         self,
         path: str,
         payload: Optional[Any] = None,
-        headers: Optional[Dict] = None,
-        files: Optional[Dict] = None,
+        headers: Optional[Dict[str, str]] = None,
+        files: Optional[Dict[str, Any]] = None,
         expected_status: HTTPStatus = HTTPStatus.CREATED,
-        **kwargs,
-    ) -> Union[Dict, List]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any]]:
         return self._send_request(
             "POST",
             path,
@@ -78,12 +78,12 @@ class ApiClient:
         self,
         path: str = "",
         payload: Optional[Any] = None,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        files: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        files: Optional[Dict[str, Any]] = None,
         expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
-    ) -> Union[Dict, List]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any]]:
         return self._send_request(
             "PUT",
             path,
@@ -99,11 +99,11 @@ class ApiClient:
         self,
         path: str,
         payload: Optional[Any] = None,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
         expected_status: HTTPStatus = HTTPStatus.OK,
-        **kwargs,
-    ) -> Union[Dict, List]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any]]:
         return self._send_request(
             "PATCH",
             path,
@@ -117,12 +117,12 @@ class ApiClient:
     def delete(
         self,
         path: str,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
         payload: Optional[Any] = None,
         expected_status: HTTPStatus = HTTPStatus.NO_CONTENT,
-        **kwargs,
-    ) -> Union[Dict, List]:
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Any]]:
         return self._send_request(
             "DELETE",
             path,
@@ -136,12 +136,11 @@ class ApiClient:
 
 class NonAuthorizeClient(ApiClient):
     def __init__(self, base_url: Optional[str] = None):
-        super().__init__(base_url)
+        super().__init__(auth_token=None, base_url=base_url)
         self._request_handler = RequestHandler()
 
 
 class AuthorizeClient(ApiClient):
     def __init__(self, auth_token: str, base_url: Optional[str] = None):
-        super().__init__(base_url)
-        self.auth_token = auth_token
+        super().__init__(auth_token=auth_token, base_url=base_url)
         self._request_handler = RequestHandler(auth_token)
