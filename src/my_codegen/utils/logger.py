@@ -4,7 +4,14 @@ from typing import Optional
 
 
 def configure_logging(level: int = logging.INFO) -> logging.Logger:
-    """Configure and return a logger instance"""
+    """Configure and return a logger instance.
+
+    Args:
+        level: Logging level (default: INFO)
+
+    Returns:
+        Configured logger instance
+    """
     logger = logging.getLogger("my_codegen")
 
     # Prevent duplicate handlers

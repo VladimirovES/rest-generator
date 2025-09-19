@@ -29,6 +29,8 @@ dependencies = [
     "autoflake>=2.3.0",
     "black>=24.0.0",
     "allure-pytest>=2.13.0",
+    "structlog>=23.0.0",
+    "curlify2>=1.0.0",
 ]
 
 [project.optional-dependencies]

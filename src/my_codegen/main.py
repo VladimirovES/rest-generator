@@ -12,6 +12,11 @@ from my_codegen.codegen.model_generator import ModelGenerator
 from my_codegen.swagger.loader import SwaggerLoader
 from my_codegen.swagger.processor import SwaggerProcessor
 from my_codegen.utils.logger import logger
+from my_codegen.exceptions import (
+    RestGeneratorError,
+    SwaggerProcessingError,
+    CodeGenerationError,
+)
 from my_codegen.constants import (
     DEFAULT_SWAGGER_PATH,
     DEFAULT_OUTPUT_DIR,
@@ -25,23 +30,18 @@ from my_codegen.constants import (
 load_dotenv()
 
 
-class RestGenError(Exception):
-    """Base exception for rest generator"""
-    pass
-
-
-class SwaggerProcessingError(RestGenError):
-    """Error during swagger processing"""
-    pass
-
-
-class CodeGenerationError(RestGenError):
-    """Error during code generation"""
-    pass
 
 
 class RestGenerator:
-    """Main generator class that orchestrates the entire process"""
+    """Main generator class that orchestrates the REST client generation process.
+
+    This class handles the complete workflow from Swagger/OpenAPI specification
+    processing to generating Python client code, models, and facades.
+
+    Args:
+        swagger_url: URL to the Swagger/OpenAPI specification
+        output_dir: Directory where generated code will be saved
+    """
 
     def __init__(self, swagger_url: str, output_dir: str = DEFAULT_OUTPUT_DIR):
         self.swagger_url = swagger_url
@@ -78,7 +78,7 @@ class RestGenerator:
 
         except Exception as e:
             logger.error(f"Generation failed: {e}")
-            raise RestGenError(f"Failed to generate REST client: {e}") from e
+            raise RestGeneratorError(f"Failed to generate REST client: {e}") from e
 
     def _load_swagger(self) -> Tuple[object, str, str]:
         """Download and load swagger specification"""

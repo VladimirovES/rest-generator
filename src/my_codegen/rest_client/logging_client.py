@@ -1,34 +1,14 @@
 import json
-from typing import Any
+from typing import Any, Union
 
-try:
-    import allure
-    ALLURE_AVAILABLE = True
-except ImportError:
-    ALLURE_AVAILABLE = False
-    allure = None
-
-try:
-    import structlog
-    STRUCTLOG_AVAILABLE = True
-except ImportError:
-    STRUCTLOG_AVAILABLE = False
-    structlog = None
-
-try:
-    from curlify2 import Curlify
-    CURLIFY_AVAILABLE = True
-except ImportError:
-    CURLIFY_AVAILABLE = False
-    Curlify = None
+import allure
+import structlog
+from curlify2 import Curlify
 
 
 class Logging:
     def __init__(self) -> None:
-        if STRUCTLOG_AVAILABLE:
-            self.log = structlog.get_logger(__name__).bind(service="api")
-        else:
-            self.log = None
+        self.log = structlog.get_logger(__name__).bind(service="api")
 
     def _extract_json_data(self, json_data: Any, content: Any, data: Any) -> Any:
         if json_data:
@@ -66,7 +46,7 @@ class Logging:
 
         print(json.dumps(request_info, indent=2, ensure_ascii=False))
 
-        if json_data and ALLURE_AVAILABLE:
+        if json_data:
             allure.attach(
                 json.dumps(json_data, indent=2, ensure_ascii=False),
                 name=f"Request: {method} {url}",
@@ -74,18 +54,14 @@ class Logging:
             )
 
     def log_curl(self, response) -> None:
-        if CURLIFY_AVAILABLE:
-            curl = Curlify(response.request).to_curl()
-            print(curl)
+        curl = Curlify(response.request).to_curl()
+        print(curl)
 
-            if ALLURE_AVAILABLE:
-                allure.attach(
-                    curl,
-                    name="cURL Command",
-                    attachment_type=allure.attachment_type.TEXT
-                )
-        else:
-            print(f"cURL: {response.request.method} {response.request.url}")
+        allure.attach(
+            curl,
+            name="cURL Command",
+            attachment_type=allure.attachment_type.TEXT
+        )
 
     def log_response(self, response) -> None:
         response_content = self._get_json(response)
@@ -103,7 +79,7 @@ class Logging:
 
         print(json.dumps(response_info, indent=2, ensure_ascii=False))
 
-        if isinstance(response_content, (dict, list)) and ALLURE_AVAILABLE:
+        if isinstance(response_content, (dict, list)):
             allure.attach(
                 json.dumps(response_content, indent=2, ensure_ascii=False),
                 name=f"Response JSON: {response.status_code}",
@@ -111,7 +87,7 @@ class Logging:
             )
 
     @staticmethod
-    def _get_json(response) -> dict[str, Any] | list | bytes:
+    def _get_json(response) -> Union[dict, list, bytes]:
         try:
             return response.json()
         except json.JSONDecodeError:

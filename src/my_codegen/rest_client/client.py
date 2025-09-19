@@ -1,13 +1,26 @@
+"""API client for making HTTP requests with authentication and error handling."""
+
 from typing import Union, Dict, List, Optional, Any
 from http import HTTPStatus
 
 from my_codegen.rest_client.base_url import ConfigUrl
-from my_codegen.rest_client.proccesor import RequestHandler
+from my_codegen.rest_client.processor import RequestHandler
+from my_codegen.exceptions import UnexpectedStatusCodeError, ApiClientError
 
 
 class ApiClient:
-    def __init__(self, auth_token: Optional[str], base_url: Optional[str] = None):
-        self.base_url = base_url if base_url else ConfigUrl.get_base_url()
+    """HTTP API client with authentication and request handling capabilities.
+
+    This client provides a high-level interface for making HTTP requests
+    with automatic authentication, retries, and response processing.
+
+    Args:
+        auth_token: Optional authentication token for API requests
+        base_url: Optional base URL for API endpoints
+    """
+
+    def __init__(self, auth_token: Optional[str] = None, base_url: Optional[str] = None) -> None:
+        self.base_url = base_url or ConfigUrl.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
 
@@ -23,6 +36,26 @@ class ApiClient:
         expected_status: Optional[HTTPStatus] = None,
         **kwargs: Any,
     ) -> Union[Dict[str, Any], List[Any], bytes, None]:
+        """Send HTTP request and handle response.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            path: API endpoint path with optional format placeholders
+            payload: JSON payload for request body
+            headers: Additional HTTP headers
+            params: URL query parameters
+            files: Files for multipart upload
+            data: Raw request body data
+            expected_status: Expected HTTP status code
+            **kwargs: Path format parameters
+
+        Returns:
+            Parsed response data or raw bytes
+
+        Raises:
+            UnexpectedStatusCodeError: When response status doesn't match expected
+            ApiClientError: For other API-related errors
+        """
         formatted_path = path.format(**kwargs)
         url = f"{self.base_url}{formatted_path}"
 
@@ -32,9 +65,12 @@ class ApiClient:
         response = self._request_handler.send_request(request, path)
 
         if response.status_code != expected_status.value:
-            assert (
-                response.status_code == expected_status.value
-            ), f"Status code expected {expected_status.value}, got {response.status_code}"
+            raise UnexpectedStatusCodeError(
+                expected=expected_status,
+                actual=response.status_code,
+                url=url,
+                response_data=self._request_handler.process_response(response)
+            )
 
         return self._request_handler.process_response(response)
 
@@ -46,6 +82,18 @@ class ApiClient:
         expected_status: HTTPStatus = HTTPStatus.OK,
         **kwargs: Any,
     ) -> Union[Dict[str, Any], List[Any]]:
+        """Send GET request.
+
+        Args:
+            path: API endpoint path
+            headers: Additional HTTP headers
+            params: URL query parameters
+            expected_status: Expected HTTP status code
+            **kwargs: Path format parameters
+
+        Returns:
+            Response data as dict or list
+        """
         return self._send_request(
             "GET",
             path,
@@ -64,6 +112,19 @@ class ApiClient:
         expected_status: HTTPStatus = HTTPStatus.CREATED,
         **kwargs: Any,
     ) -> Union[Dict[str, Any], List[Any]]:
+        """Send POST request.
+
+        Args:
+            path: API endpoint path
+            payload: Request payload data
+            headers: Additional HTTP headers
+            files: Files for multipart upload
+            expected_status: Expected HTTP status code
+            **kwargs: Path format parameters
+
+        Returns:
+            Response data as dict or list
+        """
         return self._send_request(
             "POST",
             path,
@@ -134,13 +195,30 @@ class ApiClient:
         )
 
 
-class NonAuthorizeClient(ApiClient):
-    def __init__(self, base_url: Optional[str] = None):
+class NonAuthorizedClient(ApiClient):
+    """API client without authentication.
+
+    Use this client for public endpoints that don't require authentication.
+
+    Args:
+        base_url: Optional base URL for API endpoints
+    """
+
+    def __init__(self, base_url: Optional[str] = None) -> None:
         super().__init__(auth_token=None, base_url=base_url)
         self._request_handler = RequestHandler()
 
 
-class AuthorizeClient(ApiClient):
-    def __init__(self, auth_token: str, base_url: Optional[str] = None):
+class AuthorizedClient(ApiClient):
+    """API client with required authentication.
+
+    Use this client for endpoints that require authentication.
+
+    Args:
+        auth_token: Authentication token (required)
+        base_url: Optional base URL for API endpoints
+    """
+
+    def __init__(self, auth_token: str, base_url: Optional[str] = None) -> None:
         super().__init__(auth_token=auth_token, base_url=base_url)
         self._request_handler = RequestHandler(auth_token)
