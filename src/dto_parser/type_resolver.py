@@ -40,6 +40,7 @@ class TypeResolver:
             Python type string
         """
         if not schema:
+            self.imports.add("Any")
             return "Any"
 
         # Handle $ref
@@ -87,6 +88,8 @@ class TypeResolver:
         elif basic_type == "Dict[str, Any]":
             self.imports.add("Dict")
             self.imports.add("Any")
+        elif basic_type == "Any":
+            self.imports.add("Any")
 
         if schema.get("nullable", False):
             self.imports.add("Optional")
@@ -101,6 +104,7 @@ class TypeResolver:
     def _handle_composition(self, schemas: List[Dict], composition_type: str, name_hint: str) -> str:
         """Handle allOf, oneOf, anyOf."""
         if not schemas:
+            self.imports.add("Any")
             return "Any"
 
         resolved_types = []
@@ -109,9 +113,14 @@ class TypeResolver:
             resolved_types.append(resolved_type)
 
         if len(resolved_types) == 1:
-            return resolved_types[0]
+            single_type = resolved_types[0]
+            if single_type == "Any":
+                self.imports.add("Any")
+            return single_type
 
         self.imports.add("Union")
+        if any(resolved_type == "Any" for resolved_type in resolved_types):
+            self.imports.add("Any")
         return f"Union[{', '.join(resolved_types)}]"
 
     def _handle_object_type(self, schema: Dict[str, Any], name_hint: str) -> str:
@@ -147,12 +156,15 @@ class TypeResolver:
             base_type = "int"
         else:
             base_type = "Any"
+            self.imports.add("Any")
 
         if name_hint:
             enum_name = self._format_class_name(f"{name_hint}Enum")
             self.model_references.add(enum_name)
             return enum_name
 
+        if base_type == "Any":
+            self.imports.add("Any")
         return base_type
 
     def _add_import_for_type(self, type_name: str) -> None:
