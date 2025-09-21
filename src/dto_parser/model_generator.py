@@ -1,7 +1,7 @@
 """Custom model generator that creates Pydantic models from parsed schemas."""
 
 import os
-from typing import Dict, Set, List
+from typing import Dict, Set, List, Iterable
 from pathlib import Path
 
 from dto_parser.schema_parser import SchemaParser, ModelDefinition
@@ -44,12 +44,9 @@ class CustomModelGenerator:
         # Generate BaseConfigModel file for this service
         self._generate_base_config(models_dir)
 
-        # Generate __init__.py for models
-        self._generate_models_init(models_dir, endpoint_models)
-
-        # Generate individual model files
-        generated_classes = []
-        for model_name in endpoint_models:
+        # Generate individual model files and track the classes we actually create
+        generated_classes: List[str] = []
+        for model_name in sorted(endpoint_models):
             # Skip generating http_validation_error models
             if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
                 continue
@@ -58,6 +55,9 @@ class CustomModelGenerator:
                 model_def = self.all_models[model_name]
                 self._generate_model_file(models_dir, model_def)
                 generated_classes.append(model_name)
+
+        # Generate __init__.py for models based on the generated classes
+        self._generate_models_init(models_dir, generated_classes)
 
         return generated_classes
 
@@ -87,14 +87,14 @@ class BaseConfigModel(BaseModel):
         with open(base_config_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-    def _generate_models_init(self, models_dir: str, model_names: Set[str]) -> None:
+    def _generate_models_init(self, models_dir: str, model_names: Iterable[str]) -> None:
         """Generate __init__.py file for the models package."""
         init_path = os.path.join(models_dir, "__init__.py")
 
         imports = []
         all_exports = []
 
-        for model_name in sorted(model_names):
+        for model_name in sorted(set(model_names)):
             # Skip http_validation_error models
             if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
                 continue
