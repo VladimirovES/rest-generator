@@ -1,8 +1,8 @@
 """Custom model generator that creates Pydantic models from parsed schemas."""
 
 import os
-from typing import Dict, Set, List, Iterable
-from pathlib import Path
+import re
+from typing import Dict, Iterable, List, Set
 
 from dto_parser.schema_parser import SchemaParser, ModelDefinition
 from utils.naming import normalize_file_name
@@ -44,11 +44,13 @@ class CustomModelGenerator:
         # Generate BaseConfigModel file for this service
         self._generate_base_config(models_dir)
 
+        # Resolve complete set of models including dependencies
+        models_to_generate = self._resolve_model_dependencies(endpoint_models)
+
         # Generate individual model files and track the classes we actually create
         generated_classes: List[str] = []
-        for model_name in sorted(endpoint_models):
-            # Skip generating http_validation_error models
-            if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
+        for model_name in sorted(models_to_generate):
+            if self._should_skip_model(model_name):
                 continue
 
             if model_name in self.all_models:
@@ -96,7 +98,7 @@ class BaseConfigModel(BaseModel):
 
         for model_name in sorted(set(model_names)):
             # Skip http_validation_error models
-            if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
+            if self._should_skip_model(model_name):
                 continue
 
             if model_name in self.all_models:
@@ -178,27 +180,60 @@ class BaseConfigModel(BaseModel):
 
         return imports
 
+    def _resolve_model_dependencies(self, model_names: Iterable[str]) -> Set[str]:
+        """Expand the set of models to include their dependent models."""
+        resolved: Set[str] = set()
+        stack = list(model_names)
+
+        while stack:
+            model_name = stack.pop()
+            if model_name in resolved or self._should_skip_model(model_name):
+                continue
+
+            resolved.add(model_name)
+
+            if model_name not in self.all_models:
+                continue
+
+            model_def = self.all_models[model_name]
+            for dependency in self._extract_referenced_models(model_def):
+                if dependency not in resolved:
+                    stack.append(dependency)
+
+        return resolved
+
+    @staticmethod
+    def _should_skip_model(model_name: str) -> bool:
+        lowered = model_name.lower()
+        return lowered in {"httpvalidationerror", "http_validation_error"}
+
+    def _extract_referenced_models(self, model_def: ModelDefinition) -> Set[str]:
+        """Find other models referenced within the provided model definition."""
+        referenced_models: Set[str] = set()
+
+        def _scan_text(value: str) -> None:
+            for candidate in re.findall(r"\b[A-Z][a-zA-Z0-9_]*\b", value):
+                if candidate in {"List", "Dict", "Optional", "Union", "Set", "Tuple", "UUID", "datetime", "date", "time", "Any"}:
+                    continue
+                if candidate == model_def.name:
+                    continue
+                if candidate in self.all_models and not self._should_skip_model(candidate):
+                    referenced_models.add(candidate)
+
+        for field in model_def.fields:
+            _scan_text(field.type_str)
+
+        if model_def.base_type:
+            _scan_text(model_def.base_type)
+
+        return referenced_models
+
     def _get_local_model_imports(self, model_def: ModelDefinition) -> List[str]:
         """Get imports for other models referenced in this model."""
         imports = []
-        referenced_models = set()
 
-        # Find all model references in field types
-        for field in model_def.fields:
-            # Extract model names from type strings like "List[ModelName]", "Optional[ModelName]", etc.
-            type_str = field.type_str
-            # Find potential model names (capitalized words that could be models)
-            import re
-            model_names = re.findall(r'\b[A-Z][a-zA-Z0-9_]*(?:Schema|Response|Request|Model|Data)?\b', type_str)
+        referenced_models = self._extract_referenced_models(model_def)
 
-            for model_name in model_names:
-                # Skip built-in types and common typing constructs, but not 'Any' since it needs to be detected
-                if model_name not in ['List', 'Dict', 'Optional', 'Union', 'Set', 'Tuple', 'UUID', 'datetime', 'date', 'time']:
-                    # Check if it's a known model in our schema
-                    if model_name in self.all_models and model_name != model_def.name:
-                        referenced_models.add(model_name)
-
-        # Generate imports for referenced models
         if referenced_models:
             import_list = ', '.join(sorted(referenced_models))
             imports.append(f"from . import {import_list}")
