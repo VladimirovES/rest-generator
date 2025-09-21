@@ -200,7 +200,7 @@ def main(swagger_url: str, output_dir: str) -> None:
     try:
         generator = RestGenerator(swagger_url, output_dir)
         generator.generate()
-    except RestGenError as e:
+    except RestGeneratorError as e:
         logger.error(str(e))
         sys.exit(1)
     except Exception as e:

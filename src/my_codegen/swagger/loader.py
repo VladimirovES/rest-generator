@@ -1,11 +1,9 @@
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 import re
 
+from pydantic import ValidationError
 from my_codegen.utils.shell import run_command
-
-from typing import Dict, List, Optional, Any
-
 from my_codegen.swagger.swagger_models import SwaggerSpec
 
 
