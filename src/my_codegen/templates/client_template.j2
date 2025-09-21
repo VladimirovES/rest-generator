@@ -3,7 +3,9 @@ import allure
 
 from typing import Any, Optional, List, Dict
 from my_codegen.rest_client.client import ApiClient
+{% if imports %}
 from {{ models_import_path }} import {{ imports | join(', ') }}
+{% endif %}
 
 class {{ class_name }}:
 

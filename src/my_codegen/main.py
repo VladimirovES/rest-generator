@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 
 from my_codegen.codegen.facade_generator import FacadeGenerator
 from my_codegen.codegen.generate_app_facade import generate_app_facade
-from my_codegen.codegen.client_generator import ClientGenerator
-from my_codegen.codegen.model_generator import ModelGenerator
+from my_codegen.codegen.enhanced_client_generator import EnhancedClientGenerator
 from my_codegen.swagger.loader import SwaggerLoader
 from my_codegen.swagger.processor import SwaggerProcessor
 from my_codegen.utils.logger import logger
@@ -55,14 +54,11 @@ class RestGenerator:
             swagger_spec, module_name, service_path = self._load_swagger()
 
             # Step 2: Setup directories
-            service_dir, endpoints_dir = self._setup_directories(module_name)
+            service_dir = self._setup_directories(module_name)
 
-            # Step 3: Generate models
-            self._generate_models(service_dir)
-
-            # Step 4: Process swagger and generate clients
-            file_to_class = self._generate_clients(
-                swagger_spec, module_name, service_path, endpoints_dir
+            # Step 3: Generate clients with models
+            file_to_class = self._generate_clients_with_models(
+                swagger_spec, service_dir
             )
 
             # Step 5: Post-process code
@@ -100,40 +96,21 @@ class RestGenerator:
         except Exception as e:
             raise SwaggerProcessingError(f"Failed to load swagger: {e}") from e
 
-    def _setup_directories(self, module_name: str) -> Tuple[str, str]:
+    def _setup_directories(self, module_name: str) -> str:
         """Create necessary output directories"""
         try:
             service_dir = os.path.join(self.output_dir, module_name)
-            endpoints_dir = os.path.join(service_dir, "endpoints")
-
             os.makedirs(service_dir, exist_ok=True)
-            os.makedirs(endpoints_dir, exist_ok=True)
 
-            logger.info(f"Created directories: '{service_dir}' and '{endpoints_dir}'")
-            return service_dir, endpoints_dir
+            logger.info(f"Created service directory: '{service_dir}'")
+            return service_dir
 
         except OSError as e:
             raise CodeGenerationError(f"Failed to create directories: {e}") from e
 
-    def _generate_models(self, service_dir: str) -> None:
-        """Generate Pydantic models"""
-        try:
-            logger.info("Generating Pydantic models...")
-            models_file = os.path.join(service_dir, "models")
-            model_gen = ModelGenerator(self.swagger_path, models_file)
 
-            model_gen.generate_models()
-            logger.info("Models generated. Fixing inheritance...")
-            model_gen.fix_models_inheritance()
-            logger.info("Model inheritance fixed.")
-
-        except Exception as e:
-            raise CodeGenerationError(f"Failed to generate models: {e}") from e
-
-    def _generate_clients(
-        self, swagger_spec: object, module_name: str, service_path: str, endpoints_dir: str
-    ) -> dict:
-        """Generate client classes"""
+    def _generate_clients_with_models(self, swagger_spec: object, service_dir: str) -> dict:
+        """Generate client classes with models per endpoint"""
         try:
             logger.info("Extracting endpoints and imports from swagger...")
             processor = SwaggerProcessor(swagger_spec)
@@ -142,19 +119,25 @@ class RestGenerator:
 
             logger.info(f"Found {len(endpoints)} endpoints and {len(imports)} imports")
 
-            logger.info("Generating client classes...")
-            client_gen = ClientGenerator(
-                endpoints=endpoints, imports=imports, template_name=CLIENT_TEMPLATE
-            )
-            file_to_class = client_gen.generate_clients(
-                endpoints_dir, module_name, service_path
-            )
+            logger.info("Generating client classes with models...")
+            # Convert swagger_spec to dict for model generator
+            import json
+            with open(self.swagger_path, 'r', encoding='utf-8') as f:
+                swagger_dict = json.load(f)
 
-            logger.info(f"Generated {len(file_to_class)} client files")
+            client_gen = EnhancedClientGenerator(
+                endpoints=endpoints,
+                imports=imports,
+                template_name=CLIENT_TEMPLATE,
+                openapi_spec=swagger_dict
+            )
+            file_to_class = client_gen.generate_clients_with_models(service_dir)
+
+            logger.info(f"Generated {len(file_to_class)} client files with models")
             return file_to_class
 
         except Exception as e:
-            raise CodeGenerationError(f"Failed to generate clients: {e}") from e
+            raise CodeGenerationError(f"Failed to generate clients with models: {e}") from e
 
     def _post_process_code(self, service_dir: str) -> None:
         """Run code formatting and cleanup"""
