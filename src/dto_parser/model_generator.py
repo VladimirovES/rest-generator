@@ -162,7 +162,7 @@ class BaseConfigModel(BaseModel):
             else:
                 imports.append("from enum import IntEnum")
         elif not model_def.base_type.startswith("TypeAlias"):
-            imports.append("from pydantic import BaseModel")
+            imports.append("from .base_config import BaseConfigModel")
 
             # Add field imports if needed
             has_constraints = any(field.constraints for field in model_def.fields)
@@ -214,7 +214,7 @@ class BaseConfigModel(BaseModel):
 
         def _scan_text(value: str) -> None:
             for candidate in re.findall(r"\b[A-Z][a-zA-Z0-9_]*\b", value):
-                if candidate in {"List", "Dict", "Optional", "Union", "Set", "Tuple", "UUID", "datetime", "date", "time", "Any", "BaseModel"}:
+                if candidate in {"List", "Dict", "Optional", "Union", "Set", "Tuple", "UUID", "datetime", "date", "time", "Any", "BaseModel", "BaseConfigModel"}:
                     continue
                 if candidate == model_def.name:
                     continue

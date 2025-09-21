@@ -2,6 +2,7 @@
 
 from typing import Dict, Any, List, Set, Optional
 import json
+import re
 from dataclasses import dataclass
 
 from dto_parser.type_resolver import TypeResolver
@@ -27,7 +28,7 @@ class ModelDefinition:
     description: Optional[str] = None
     is_enum: bool = False
     enum_values: Optional[List[Any]] = None
-    base_type: str = "BaseModel"
+    base_type: str = "BaseConfigModel"
     imports: Optional[Set[str]] = None
 
 
@@ -75,6 +76,29 @@ class SchemaParser:
         if not operation:
             return models
 
+    def _get_or_create_model_name(self, original_name: str) -> str:
+        """Normalize schema names to valid Python class identifiers."""
+        if original_name in self.name_mapping:
+            return self.name_mapping[original_name]
+
+        cleaned = original_name.replace(".", " " ).replace("__", " " )
+        cleaned = re.sub("[^0-9a-zA-Z]+", " ", cleaned)
+        sanitized = to_pascal_case(cleaned)
+
+        if not sanitized:
+            sanitized = to_pascal_case(original_name)
+        if not sanitized:
+            sanitized = f"Model{len(self.name_mapping) + 1}"
+
+        candidate = sanitized
+        suffix = 1
+        while candidate in self.used_model_names:
+            suffix += 1
+            candidate = f"{sanitized}{suffix}"
+
+        self.used_model_names.add(candidate)
+        self.name_mapping[original_name] = candidate
+        return candidate
         # Check parameters
         parameters = operation.get("parameters", [])
         for param in parameters:
@@ -178,7 +202,7 @@ class SchemaParser:
             name=model_name,
             fields=fields,
             description=schema.get("description"),
-            base_type="BaseModel",
+            base_type="BaseConfigModel",
             imports=model_imports
         )
 
