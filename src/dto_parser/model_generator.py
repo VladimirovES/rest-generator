@@ -41,6 +41,9 @@ class CustomModelGenerator:
         models_dir = os.path.join(endpoint_dir, "models")
         os.makedirs(models_dir, exist_ok=True)
 
+        # Generate BaseConfigModel file for this service
+        self._generate_base_config(models_dir)
+
         # Generate __init__.py for models
         self._generate_models_init(models_dir, endpoint_models)
 
@@ -57,6 +60,32 @@ class CustomModelGenerator:
                 generated_classes.append(model_name)
 
         return generated_classes
+
+    def _generate_base_config(self, models_dir: str) -> None:
+        """Generate base_config.py file with BaseConfigModel."""
+        base_config_path = os.path.join(models_dir, "base_config.py")
+
+        # Only generate if it doesn't exist to avoid overwriting
+        if os.path.exists(base_config_path):
+            return
+
+        content = '''"""Base configuration for Pydantic models."""
+
+from pydantic import BaseModel
+
+
+class BaseConfigModel(BaseModel):
+    """Base model class with common configuration."""
+
+    class Config:
+        extra = "forbid"
+        use_enum_values = True
+        validate_assignment = True
+        arbitrary_types_allowed = True
+'''
+
+        with open(base_config_path, "w", encoding="utf-8") as f:
+            f.write(content)
 
     def _generate_models_init(self, models_dir: str, model_names: Set[str]) -> None:
         """Generate __init__.py file for the models package."""
@@ -130,7 +159,7 @@ class CustomModelGenerator:
             else:
                 imports.append("from enum import IntEnum")
         elif not model_def.base_type.startswith("TypeAlias"):
-            imports.append("from pydantic_utils.pydantic_config import BaseConfigModel")
+            imports.append("from pydantic import BaseModel")
 
             # Add field imports if needed
             has_constraints = any(field.constraints for field in model_def.fields)
@@ -142,6 +171,37 @@ class CustomModelGenerator:
             # Temporarily set imports to use the type resolver's import formatting
             self.parser.type_resolver.imports = model_def.imports.copy()
             imports.extend(self.parser.type_resolver.get_imports())
+
+        # Add local model imports for models referenced in this model
+        local_model_imports = self._get_local_model_imports(model_def)
+        imports.extend(local_model_imports)
+
+        return imports
+
+    def _get_local_model_imports(self, model_def: ModelDefinition) -> List[str]:
+        """Get imports for other models referenced in this model."""
+        imports = []
+        referenced_models = set()
+
+        # Find all model references in field types
+        for field in model_def.fields:
+            # Extract model names from type strings like "List[ModelName]", "Optional[ModelName]", etc.
+            type_str = field.type_str
+            # Find potential model names (capitalized words that could be models)
+            import re
+            model_names = re.findall(r'\b[A-Z][a-zA-Z0-9_]*(?:Schema|Response|Request|Model|Data)?\b', type_str)
+
+            for model_name in model_names:
+                # Skip built-in types and common typing constructs, but not 'Any' since it needs to be detected
+                if model_name not in ['List', 'Dict', 'Optional', 'Union', 'Set', 'Tuple', 'UUID', 'datetime', 'date', 'time']:
+                    # Check if it's a known model in our schema
+                    if model_name in self.all_models and model_name != model_def.name:
+                        referenced_models.add(model_name)
+
+        # Generate imports for referenced models
+        if referenced_models:
+            import_list = ', '.join(sorted(referenced_models))
+            imports.append(f"from . import {import_list}")
 
         return imports
 
