@@ -41,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-rest_gen = "my_codegen.main:main"
+rest_gen = "main:main"
 
 [project.urls]
 Homepage = "https://github.com/evgenyvladimirov/rest-generator"
@@ -55,7 +55,7 @@ where = ["src"]
 "" = "src"
 
 [tool.setuptools.dynamic]
-version = {attr = "my_codegen.__version__"}
+version = {attr = "__init__.__version__"}
 
 [tool.ruff]
 line-length = 88
