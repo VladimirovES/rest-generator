@@ -26,7 +26,7 @@ class ModelDefinition:
     description: Optional[str] = None
     is_enum: bool = False
     enum_values: Optional[List[Any]] = None
-    base_type: str = "BaseModel"
+    base_type: str = "BaseConfigModel"
     imports: Optional[Set[str]] = None
 
 
@@ -172,7 +172,7 @@ class SchemaParser:
             name=name,
             fields=fields,
             description=schema.get("description"),
-            base_type="BaseModel",
+            base_type="BaseConfigModel",
             imports=model_imports
         )
 

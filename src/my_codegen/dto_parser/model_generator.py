@@ -122,7 +122,7 @@ class CustomModelGenerator:
             else:
                 imports.append("from enum import IntEnum")
         elif not model_def.base_type.startswith("TypeAlias"):
-            imports.append("from pydantic import BaseModel")
+            imports.append("from my_codegen.pydantic_utils.pydantic_config import BaseConfigModel")
 
             # Add field imports if needed
             has_constraints = any(field.constraints for field in model_def.fields)
