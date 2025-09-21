@@ -47,6 +47,10 @@ class CustomModelGenerator:
         # Generate individual model files
         generated_classes = []
         for model_name in endpoint_models:
+            # Skip generating http_validation_error models
+            if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
+                continue
+
             if model_name in self.all_models:
                 model_def = self.all_models[model_name]
                 self._generate_model_file(models_dir, model_def)
@@ -62,6 +66,10 @@ class CustomModelGenerator:
         all_exports = []
 
         for model_name in sorted(model_names):
+            # Skip http_validation_error models
+            if model_name.lower() in ['httpvalidationerror', 'http_validation_error'] or model_name == 'HTTPValidationError':
+                continue
+
             if model_name in self.all_models:
                 file_name = normalize_file_name(model_name)
                 imports.append(f"from .{file_name} import {model_name}")
