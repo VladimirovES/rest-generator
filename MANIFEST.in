@@ -1,1 +1,1 @@
-recursive-include src/my_codegen/templates *.j2
+recursive-include src/codegen/templates *.j2

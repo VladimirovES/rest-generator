@@ -58,9 +58,6 @@ class CustomModelGenerator:
                 self._generate_model_file(models_dir, model_def)
                 generated_classes.append(model_name)
 
-        # Generate __init__.py for models based on the generated classes
-        self._generate_models_init(models_dir, generated_classes)
-
         return generated_classes
 
     def _generate_base_config(self, models_dir: str) -> None:
@@ -115,6 +112,10 @@ class BaseConfigModel(BaseModel):
 
         with open(init_path, "w", encoding="utf-8") as f:
             f.write(content)
+
+    def finalize_models_package(self, models_dir: str, model_names: Iterable[str]) -> None:
+        """Create or update models package initializer with collected models."""
+        self._generate_models_init(models_dir, model_names)
 
     def _generate_model_file(self, models_dir: str, model_def: ModelDefinition) -> None:
         """Generate a single model file."""
@@ -213,7 +214,7 @@ class BaseConfigModel(BaseModel):
 
         def _scan_text(value: str) -> None:
             for candidate in re.findall(r"\b[A-Z][a-zA-Z0-9_]*\b", value):
-                if candidate in {"List", "Dict", "Optional", "Union", "Set", "Tuple", "UUID", "datetime", "date", "time", "Any"}:
+                if candidate in {"List", "Dict", "Optional", "Union", "Set", "Tuple", "UUID", "datetime", "date", "time", "Any", "BaseModel"}:
                     continue
                 if candidate == model_def.name:
                     continue

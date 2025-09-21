@@ -26,7 +26,7 @@ def generate_app_facade(
 
     # Get absolute path to templates directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    templates_dir = os.path.join(current_dir, "..", "templates")
+    templates_dir = os.path.join(current_dir, "templates")
     templates_path = os.path.abspath(templates_dir)
 
     env = Environment(

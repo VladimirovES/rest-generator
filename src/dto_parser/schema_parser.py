@@ -5,6 +5,7 @@ import json
 from dataclasses import dataclass
 
 from dto_parser.type_resolver import TypeResolver
+from utils.naming import to_pascal_case
 
 
 @dataclass
@@ -36,6 +37,9 @@ class SchemaParser:
     def __init__(self, openapi_spec: Dict[str, Any]):
         self.spec = openapi_spec
         self.type_resolver = TypeResolver()
+        self.name_mapping: Dict[str, str] = {}
+        self.used_model_names: Set[str] = set()
+        self.type_resolver.set_ref_name_transform(self._get_or_create_model_name)
         self.parsed_models: Dict[str, ModelDefinition] = {}
         self.endpoint_models: Dict[str, Set[str]] = {}  # endpoint -> model names
 
@@ -46,7 +50,7 @@ class SchemaParser:
 
         for schema_name, schema_def in schemas.items():
             model = self._parse_schema_definition(schema_name, schema_def)
-            self.parsed_models[schema_name] = model
+            self.parsed_models[model.name] = model
 
         return self.parsed_models
 
@@ -101,7 +105,7 @@ class SchemaParser:
 
         if "$ref" in schema:
             ref_name = schema["$ref"].split("/")[-1]
-            models.add(ref_name)
+            models.add(self._get_or_create_model_name(ref_name))
             return models
 
         if "allOf" in schema:
@@ -125,13 +129,15 @@ class SchemaParser:
 
         return models
 
-    def _parse_schema_definition(self, name: str, schema: Dict[str, Any]) -> ModelDefinition:
+    def _parse_schema_definition(self, original_name: str, schema: Dict[str, Any]) -> ModelDefinition:
         """Parse a single schema definition into a ModelDefinition."""
+
+        model_name = self._get_or_create_model_name(original_name)
 
         # Handle enums
         if "enum" in schema:
             return ModelDefinition(
-                name=name,
+                name=model_name,
                 fields=[],
                 description=schema.get("description"),
                 is_enum=True,
@@ -141,18 +147,18 @@ class SchemaParser:
 
         # Handle object types
         if schema.get("type") == "object" or "properties" in schema:
-            return self._parse_object_schema(name, schema)
+            return self._parse_object_schema(schema, model_name)
 
         # Handle simple types (create type alias)
-        type_str = self.type_resolver.resolve_type(schema, name)
+        type_str = self.type_resolver.resolve_type(schema, model_name)
         return ModelDefinition(
-            name=name,
+            name=model_name,
             fields=[],
             description=schema.get("description"),
             base_type=f"TypeAlias = {type_str}"
         )
 
-    def _parse_object_schema(self, name: str, schema: Dict[str, Any]) -> ModelDefinition:
+    def _parse_object_schema(self, schema: Dict[str, Any], model_name: str) -> ModelDefinition:
         """Parse an object schema into a ModelDefinition."""
         properties = schema.get("properties", {})
         required_fields = set(schema.get("required", []))
@@ -169,7 +175,7 @@ class SchemaParser:
         model_imports = self.type_resolver.imports.copy()
 
         return ModelDefinition(
-            name=name,
+            name=model_name,
             fields=fields,
             description=schema.get("description"),
             base_type="BaseModel",

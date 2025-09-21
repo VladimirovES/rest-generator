@@ -1,6 +1,6 @@
 """Type resolution utilities for OpenAPI schemas."""
 
-from typing import Dict, Any, Set, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 import re
 
 
@@ -28,6 +28,11 @@ class TypeResolver:
     def __init__(self):
         self.imports: Set[str] = set()
         self.model_references: Set[str] = set()
+        self.ref_name_transform: Optional[Callable[[str], str]] = None
+
+    def set_ref_name_transform(self, transform: Callable[[str], str]) -> None:
+        """Register a transformer applied to $ref targets before usage."""
+        self.ref_name_transform = transform
 
     def resolve_type(self, schema: Dict[str, Any], name_hint: str = "") -> str:
         """Resolve OpenAPI schema to Python type string.
@@ -46,6 +51,8 @@ class TypeResolver:
         # Handle $ref
         if "$ref" in schema:
             ref_name = self._extract_ref_name(schema["$ref"])
+            if self.ref_name_transform:
+                ref_name = self.ref_name_transform(ref_name)
             self.model_references.add(ref_name)
             return ref_name
 

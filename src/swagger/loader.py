@@ -1,8 +1,14 @@
+"""Utilities for loading Swagger/OpenAPI specifications."""
+
 import json
-from typing import Dict, Any, List, Optional
 import re
+import shutil
+from pathlib import Path
+from typing import Optional
+from urllib.parse import urlparse
 
 from pydantic import ValidationError
+
 from utils.shell import run_command
 from swagger.swagger_models import SwaggerSpec
 
@@ -32,6 +38,24 @@ class SwaggerLoader:
             return self.swagger_spec.servers[0].url
         return "/"
 
-    def download_swagger(self, url: str):
-        swagger_cmd = f"curl {url} -o ./swagger.json"
+    def download_swagger(self, url: str) -> None:
+        """Download the swagger specification to the configured file path."""
+        destination = Path(self.file_path)
+        parsed = urlparse(url)
+
+        # Handle file:// URLs (or plain local paths) without invoking curl
+        if parsed.scheme in {"", "file"}:
+            source_path = Path(parsed.path or url)
+
+            # If curl would overwrite the same file, skip copying
+            if source_path.resolve() == destination.resolve():
+                return
+
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source_path, destination)
+            return
+
+        # Fallback to curl for remote URLs
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        swagger_cmd = f"curl -L {url!r} -o {str(destination)!r}"
         run_command(swagger_cmd)

@@ -54,6 +54,11 @@ class EnhancedClientGenerator(ClientGenerator):
                 )
                 all_model_names.update(models)
 
+            # Ensure models package exports all collected models
+            self.model_generator.finalize_models_package(
+                os.path.join(module_dir, "models"), all_model_names
+            )
+
             # Generate the client file
             class_name = self._tag_to_class_name(file_name)
             self._generate_module_client_file(module_dir, endpoints, class_name, all_model_names)
