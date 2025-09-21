@@ -143,10 +143,14 @@ class RestGenerator:
         """Run code formatting and cleanup"""
         try:
             logger.info("Running code formatting...")
-            # Use the model generator's post-processing method
-            # This could be refactored to a separate utility class
-            model_gen = ModelGenerator("", "")  # Temporary instance
-            model_gen.post_process_code(service_dir)
+            from my_codegen.utils.shell import run_command
+
+            # Run autoflake to remove unused imports
+            run_command(f"autoflake --remove-all-unused-imports --recursive --in-place {service_dir}")
+
+            # Run black to format code
+            run_command(f"black {service_dir}")
+
             logger.info("Code formatting completed")
 
         except Exception as e:
@@ -181,7 +185,7 @@ class RestGenerator:
     @staticmethod
     def _generate_facade_class_name(module_name: str) -> str:
         """Generate facade class name from module name"""
-        return "".join(word.capitalize() for word in module_name.split("_")) + "Api"
+        return "".join(word.capitalize() for word in module_name.split("_")) + "Facade"
 
 
 @click.command()

@@ -11,7 +11,7 @@ def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, 
             facade_file = os.path.join(service_path, "facade.py")
             if os.path.exists(facade_file):
                 api_class = (
-                    "".join(word.capitalize() for word in item.split("_")) + "Api"
+                    "".join(word.capitalize() for word in item.split("_")) + "Facade"
                 )
                 services_info.append({"service_name": item, "api_class": api_class})
     return services_info

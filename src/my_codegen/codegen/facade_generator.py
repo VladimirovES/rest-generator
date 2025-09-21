@@ -40,14 +40,11 @@ class FacadeGenerator:
     def _prepare_imports_data(
         self, file_to_class: Dict[str, str]
     ) -> List[ClientImport]:
-        """Подготавливает данные об импортах клиентов"""
-        client_files = sorted([f for f in file_to_class if f.endswith("_client.py")])
-
+        """Prepare client import data for facade generation"""
         imports_data = []
-        for fname in client_files:
-            module_name = fname[:-3]  # чтобы удалить .py
-            class_name = file_to_class[fname]
-            attribute_name = class_name.lower()
+
+        for module_name, class_name in sorted(file_to_class.items()):
+            attribute_name = self._class_name_to_camel_case(class_name)
 
             imports_data.append(
                 ClientImport(
@@ -58,3 +55,9 @@ class FacadeGenerator:
             )
 
         return imports_data
+
+    def _class_name_to_camel_case(self, class_name: str) -> str:
+        """Convert PascalCase class name to camelCase attribute name"""
+        if not class_name:
+            return class_name
+        return class_name[0].lower() + class_name[1:]

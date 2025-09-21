@@ -2,7 +2,7 @@
 from my_codegen.rest_client.client import ApiClient
 
 {% for imp in imports %}
-from .endpoints.{{ imp.module_name }} import {{ imp.class_name }}
+from .{{ imp.module_name }} import {{ imp.class_name }}
 {% endfor %}
 
 
