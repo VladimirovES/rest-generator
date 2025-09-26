@@ -65,13 +65,15 @@ class RestGenerator:
             service_dir = self._setup_directories(module_name)
 
             # Step 3: Generate clients with models
-            file_to_class = self._generate_clients_with_models(
+            file_to_class, module_endpoints = self._generate_clients_with_models(
                 swagger_spec, service_dir
             )
 
             # Step 4: Generate test skeletons (optional)
             if self.generate_tests:
-                self._generate_tests_structure(module_name, file_to_class)
+                self._generate_tests_structure(
+                    module_name, file_to_class, module_endpoints
+                )
 
             # Step 5: Post-process code
             self._post_process_code(service_dir)
@@ -124,7 +126,9 @@ class RestGenerator:
             raise CodeGenerationError(f"Failed to create directories: {e}") from e
 
 
-    def _generate_clients_with_models(self, swagger_spec: object, service_dir: str) -> dict:
+    def _generate_clients_with_models(
+        self, swagger_spec: object, service_dir: str
+    ) -> Tuple[dict, dict]:
         """Generate client classes with models per endpoint"""
         try:
             logger.info("Extracting endpoints and imports from swagger...")
@@ -147,9 +151,10 @@ class RestGenerator:
                 openapi_spec=swagger_dict
             )
             file_to_class = client_gen.generate_clients_with_models(service_dir)
+            module_endpoints = client_gen.get_module_endpoints()
 
             logger.info(f"Generated {len(file_to_class)} client files with models")
-            return file_to_class
+            return file_to_class, module_endpoints
 
         except Exception as e:
             raise CodeGenerationError(f"Failed to generate clients with models: {e}") from e
@@ -172,16 +177,18 @@ class RestGenerator:
             logger.warning(f"Code formatting failed: {e}")
             # Don't fail the entire process for formatting issues
 
-    def _generate_tests_structure(self, module_name: str, file_to_class: dict) -> None:
+    def _generate_tests_structure(
+        self, module_name: str, file_to_class: dict, module_endpoints: dict
+    ) -> None:
         """Create placeholder tests mirroring the client structure."""
         if not file_to_class:
             logger.info("No clients generated; skipping test skeleton creation")
             return
 
         try:
-            tests_root = self._resolve_tests_root()
-            tests_generator = TestsGenerator(tests_root)
-            tests_generator.generate(module_name, file_to_class)
+            tests_root, package_root = self._resolve_tests_root()
+            tests_generator = TestsGenerator(tests_root, package_root)
+            tests_generator.generate(module_name, file_to_class, module_endpoints)
             service_tests_dir = os.path.join(tests_root, module_name)
             logger.info(
                 f"Generated placeholder tests for service '{module_name}' at '{service_tests_dir}'"
@@ -248,8 +255,8 @@ class RestGenerator:
         """Generate facade class name from module name"""
         return "".join(word.capitalize() for word in module_name.split("_")) + "Facade"
 
-    def _resolve_tests_root(self) -> str:
-        """Resolve absolute path for the generated tests root directory."""
+    def _resolve_tests_root(self) -> Tuple[str, str]:
+        """Resolve tests root directory and corresponding client package name."""
         output_abs = os.path.abspath(self.output_dir)
         normalized_output = output_abs.rstrip(os.sep)
         if not normalized_output:
@@ -264,7 +271,7 @@ class RestGenerator:
         tests_root = os.path.join(tests_parent, rest_clients_dirname)
         os.makedirs(tests_root, exist_ok=True)
 
-        return tests_root
+        return tests_root, rest_clients_dirname
 
 
 @click.command()

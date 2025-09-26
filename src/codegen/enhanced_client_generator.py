@@ -18,6 +18,7 @@ class EnhancedClientGenerator(ClientGenerator):
         super().__init__(endpoints, imports, template_name)
         self.openapi_spec = openapi_spec
         self.model_generator = None
+        self.module_endpoints: Dict[str, List[Endpoint]] = {}
 
     def generate_clients_with_models(self, output_dir: str) -> Dict[str, str]:
         """Generate client files with models organized per endpoint.
@@ -46,6 +47,9 @@ class EnhancedClientGenerator(ClientGenerator):
             module_dir = os.path.join(output_dir, normalized_dir_name)
             os.makedirs(module_dir, exist_ok=True)
 
+            # Track endpoints associated with the module for auxiliary generators
+            self.module_endpoints[normalized_dir_name] = endpoints
+
             # Generate models for all endpoints in this file
             all_model_names = set()
             for endpoint in endpoints:
@@ -73,6 +77,10 @@ class EnhancedClientGenerator(ClientGenerator):
 
         logger.info(f"Generated {len(file_to_class)} client files with models")
         return file_to_class
+
+    def get_module_endpoints(self) -> Dict[str, List[Endpoint]]:
+        """Return mapping of module names to their endpoints."""
+        return self.module_endpoints
 
     def _generate_module_client_file(self, module_dir: str, endpoints: List[Endpoint], class_name: str, model_names: set) -> None:
         """Generate a client file for a module."""
