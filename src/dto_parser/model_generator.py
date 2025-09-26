@@ -238,8 +238,9 @@ class BaseConfigModel(BaseModel):
         referenced_models = self._extract_referenced_models(model_def)
 
         if referenced_models:
-            import_list = ', '.join(sorted(referenced_models))
-            imports.append(f"from . import {import_list}")
+            for model in sorted(referenced_models):
+                file_name = normalize_file_name(model)
+                imports.append(f"from .{file_name} import {model}")
 
         return imports
 
