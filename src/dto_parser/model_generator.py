@@ -292,31 +292,34 @@ class BaseConfigModel(BaseModel):
             lines.append("    pass")
         else:
             for field in model_def.fields:
-                field_lines = self._generate_field_definition(field)
+                field_lines = self._generate_field_definition(field, model_def.name)
                 lines.extend(field_lines)
 
         return lines
 
-    def _generate_field_definition(self, field) -> List[str]:
+    def _generate_field_definition(self, field, current_class_name: str = "") -> List[str]:
         """Generate field definition lines."""
         lines = []
+
+        # Handle self-references by wrapping in quotes
+        type_str = self._handle_self_reference(field.type_str, current_class_name)
 
         # Build field definition
         if field.required and field.default is None:
             if field.constraints:
                 constraint_args = self._build_field_constraints(field.constraints)
-                field_def = f"{field.name}: {field.type_str} = Field({constraint_args})"
+                field_def = f"{field.name}: {type_str} = Field({constraint_args})"
             else:
-                field_def = f"{field.name}: {field.type_str}"
+                field_def = f"{field.name}: {type_str}"
         else:
             if field.constraints:
                 constraint_args = self._build_field_constraints(field.constraints)
                 if field.default:
-                    field_def = f"{field.name}: {field.type_str} = Field(default={field.default}, {constraint_args})"
+                    field_def = f"{field.name}: {type_str} = Field(default={field.default}, {constraint_args})"
                 else:
-                    field_def = f"{field.name}: {field.type_str} = Field({constraint_args})"
+                    field_def = f"{field.name}: {type_str} = Field({constraint_args})"
             else:
-                field_def = f"{field.name}: {field.type_str} = {field.default or 'None'}"
+                field_def = f"{field.name}: {type_str} = {field.default or 'None'}"
 
         lines.append(f"    {field_def}")
 
@@ -325,6 +328,20 @@ class BaseConfigModel(BaseModel):
             lines.append(f'    """{field.description}"""')
 
         return lines
+
+    def _handle_self_reference(self, type_str: str, current_class_name: str) -> str:
+        """Handle self-references by wrapping class names in quotes."""
+        if not current_class_name:
+            return type_str
+
+        # Pattern to find self-references in type annotations
+        # Matches patterns like List[ClassName], Optional[ClassName], Union[ClassName, Other], etc.
+        import re
+        pattern = rf'\b{re.escape(current_class_name)}\b'
+
+        # Replace self-references with quoted versions
+        result = re.sub(pattern, f'"{current_class_name}"', type_str)
+        return result
 
     def _build_field_constraints(self, constraints: Dict) -> str:
         """Build Field constraint arguments."""
