@@ -67,6 +67,9 @@ class RestGenerator:
             # Step 6: Generate facades
             self._generate_facades(module_name, service_dir, file_to_class)
 
+            # Step 7: Copy base modules
+            self._copy_base_modules(self.output_dir)
+
             logger.info(
                 f"Successfully generated clients, models, and facades for service "
                 f"'{module_name}' at '{service_dir}'"
@@ -181,6 +184,35 @@ class RestGenerator:
 
         except Exception as e:
             raise CodeGenerationError(f"Failed to generate facades: {e}") from e
+
+    def _copy_base_modules(self, output_dir: str) -> None:
+        """Copy base modules (rest_client, exceptions) to output directory"""
+        try:
+            import shutil
+            import os
+
+            logger.info("Copying base modules...")
+
+            # Get the source directory (where this script is located)
+            src_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # Copy rest_client module
+            rest_client_src = os.path.join(src_dir, "rest_client")
+            rest_client_dst = os.path.join(output_dir, "rest_client")
+            if os.path.exists(rest_client_dst):
+                shutil.rmtree(rest_client_dst)
+            shutil.copytree(rest_client_src, rest_client_dst)
+
+            # Copy exceptions module
+            exceptions_src = os.path.join(src_dir, "exceptions.py")
+            exceptions_dst = os.path.join(output_dir, "exceptions.py")
+            shutil.copy2(exceptions_src, exceptions_dst)
+
+            logger.info("Base modules copied successfully")
+
+        except Exception as e:
+            logger.warning(f"Failed to copy base modules: {e}")
+            # Don't fail the entire process for this
 
     @staticmethod
     def _generate_facade_class_name(module_name: str) -> str:
