@@ -1,5 +1,5 @@
 {% set docstring_indent = '    ' %}
-from my_codegen.rest_client.client import ApiClient
+from ..rest_client.client import ApiClient
 
 {% for imp in imports %}
 from .{{ imp.module_name }} import {{ imp.class_name }}

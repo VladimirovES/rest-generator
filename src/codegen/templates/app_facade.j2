@@ -1,10 +1,10 @@
 
 {% set docstring_indent = '    ' %}
 from typing import Optional
-from my_codegen.rest_client.client import ApiClient
+from .rest_client.client import ApiClient
 
 {% for srv in services %}
-from rest_clients.{{ srv.service_name }}.facade import {{ srv.api_class }}
+from .{{ srv.service_name }}.facade import {{ srv.api_class }}
 {% endfor %}
 
 
