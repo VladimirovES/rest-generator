@@ -44,10 +44,16 @@ class RestGenerator:
         output_dir: Directory where generated code will be saved
     """
 
-    def __init__(self, swagger_url: str, output_dir: str = DEFAULT_OUTPUT_DIR):
+    def __init__(
+        self,
+        swagger_url: str,
+        output_dir: str = DEFAULT_OUTPUT_DIR,
+        generate_tests: bool = False,
+    ):
         self.swagger_url = swagger_url
         self.output_dir = output_dir
         self.swagger_path = DEFAULT_SWAGGER_PATH
+        self.generate_tests = generate_tests
 
     def generate(self) -> None:
         """Main generation workflow"""
@@ -63,8 +69,9 @@ class RestGenerator:
                 swagger_spec, service_dir
             )
 
-            # Step 4: Generate test skeletons
-            self._generate_tests_structure(module_name, file_to_class)
+            # Step 4: Generate test skeletons (optional)
+            if self.generate_tests:
+                self._generate_tests_structure(module_name, file_to_class)
 
             # Step 5: Post-process code
             self._post_process_code(service_dir)
@@ -271,10 +278,16 @@ class RestGenerator:
     default=DEFAULT_OUTPUT_DIR,
     help=f"Output directory for generated files (default: {DEFAULT_OUTPUT_DIR})"
 )
-def main(swagger_url: str, output_dir: str) -> None:
+@click.option(
+    "--tests",
+    is_flag=True,
+    default=False,
+    help="Generate placeholder test skeletons alongside clients",
+)
+def main(swagger_url: str, output_dir: str, tests: bool) -> None:
     """Generate REST API client from Swagger/OpenAPI specification"""
     try:
-        generator = RestGenerator(swagger_url, output_dir)
+        generator = RestGenerator(swagger_url, output_dir, generate_tests=tests)
         generator.generate()
     except RestGeneratorError as e:
         logger.error(str(e))
