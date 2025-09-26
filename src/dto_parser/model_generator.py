@@ -88,6 +88,8 @@ class BaseConfigModel(BaseModel):
 
     def _generate_models_init(self, models_dir: str, model_names: Iterable[str]) -> None:
         """Generate __init__.py file for the models package."""
+        # Ensure the models directory exists
+        os.makedirs(models_dir, exist_ok=True)
         init_path = os.path.join(models_dir, "__init__.py")
 
         imports = []
