@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from codegen.facade_generator import FacadeGenerator
 from codegen.generate_app_facade import generate_app_facade
 from codegen.enhanced_client_generator import EnhancedClientGenerator
+from codegen.tests_generator import TestsGenerator
 from swagger.loader import SwaggerLoader
 from swagger.processor import SwaggerProcessor
 from utils.logger import logger
@@ -19,6 +20,7 @@ from exceptions import (
 from constants import (
     DEFAULT_SWAGGER_PATH,
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_TESTS_DIR,
     FACADE_FILENAME,
     APP_FACADE_FILENAME,
     CLIENT_TEMPLATE,
@@ -60,6 +62,9 @@ class RestGenerator:
             file_to_class = self._generate_clients_with_models(
                 swagger_spec, service_dir
             )
+
+            # Step 4: Generate test skeletons
+            self._generate_tests_structure(module_name, file_to_class)
 
             # Step 5: Post-process code
             self._post_process_code(service_dir)
@@ -160,6 +165,23 @@ class RestGenerator:
             logger.warning(f"Code formatting failed: {e}")
             # Don't fail the entire process for formatting issues
 
+    def _generate_tests_structure(self, module_name: str, file_to_class: dict) -> None:
+        """Create placeholder tests mirroring the client structure."""
+        if not file_to_class:
+            logger.info("No clients generated; skipping test skeleton creation")
+            return
+
+        try:
+            tests_root = self._resolve_tests_root()
+            tests_generator = TestsGenerator(tests_root)
+            tests_generator.generate(module_name, file_to_class)
+            service_tests_dir = os.path.join(tests_root, module_name)
+            logger.info(
+                f"Generated placeholder tests for service '{module_name}' at '{service_tests_dir}'"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to generate test skeletons: {e}")
+
     def _generate_facades(self, module_name: str, service_dir: str, file_to_class: dict) -> None:
         """Generate local and global facades"""
         try:
@@ -218,6 +240,24 @@ class RestGenerator:
     def _generate_facade_class_name(module_name: str) -> str:
         """Generate facade class name from module name"""
         return "".join(word.capitalize() for word in module_name.split("_")) + "Facade"
+
+    def _resolve_tests_root(self) -> str:
+        """Resolve absolute path for the generated tests root directory."""
+        output_abs = os.path.abspath(self.output_dir)
+        normalized_output = output_abs.rstrip(os.sep)
+        if not normalized_output:
+            normalized_output = output_abs
+
+        rest_clients_dirname = os.path.basename(normalized_output) or DEFAULT_OUTPUT_DIR
+        parent_dir = os.path.dirname(normalized_output) or os.getcwd()
+
+        tests_parent = os.path.join(parent_dir, DEFAULT_TESTS_DIR)
+        os.makedirs(tests_parent, exist_ok=True)
+
+        tests_root = os.path.join(tests_parent, rest_clients_dirname)
+        os.makedirs(tests_root, exist_ok=True)
+
+        return tests_root
 
 
 @click.command()

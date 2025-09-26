@@ -3,6 +3,7 @@
 # Default paths and directories
 DEFAULT_SWAGGER_PATH = "swagger.json"
 DEFAULT_OUTPUT_DIR = "rest_clients"
+DEFAULT_TESTS_DIR = "tests"
 FACADE_FILENAME = "facade.py"
 APP_FACADE_FILENAME = "api_facade.py"
 
