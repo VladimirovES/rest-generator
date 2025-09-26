@@ -182,6 +182,7 @@ class TypeResolver:
             "EmailStr": "EmailStr",
             "UUID": "UUID",
             "AnyUrl": "AnyUrl",
+            "BaseModel": "BaseModel",
         }
 
         if type_name in type_imports:
@@ -218,7 +219,7 @@ class TypeResolver:
             import_lines.append(f"from typing import {', '.join(sorted(typing_imports))}")
 
         # Pydantic imports
-        pydantic_imports = [imp for imp in self.imports if imp in ["EmailStr", "AnyUrl"]]
+        pydantic_imports = [imp for imp in self.imports if imp in ["EmailStr", "AnyUrl", "BaseModel"]]
         if pydantic_imports:
             import_lines.append(f"from pydantic import {', '.join(sorted(pydantic_imports))}")
 
