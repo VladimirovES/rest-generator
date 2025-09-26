@@ -41,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-rest_gen = "main:main"
+rest_gen = "src.main:main"
 
 [project.urls]
 Homepage = "https://github.com/evgenyvladimirov/rest-generator"
