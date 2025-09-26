@@ -51,6 +51,10 @@ Issues = "https://github.com/evgenyvladimirov/rest-generator/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.py-modules]
+# Include main.py as a top-level module
+py-modules = ["main"]
+
 [tool.setuptools]
 include-package-data = true
 
