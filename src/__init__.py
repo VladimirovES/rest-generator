@@ -4,8 +4,8 @@ __version__ = "1.2.0"
 __author__ = "Vladimirov Evgeniy"
 __email__ = "evgeniy.vladimirov@example.com"
 
-from main import RestGenerator
-from exceptions import (
+from .main import RestGenerator
+from .exceptions import (
     RestGeneratorError,
     SwaggerProcessingError,
     CodeGenerationError,
