@@ -105,8 +105,22 @@ class SchemaParser:
         if original_name in self.name_mapping:
             return self.name_mapping[original_name]
 
-        cleaned = original_name.replace(".", " " ).replace("__", " " )
-        cleaned = re.sub("[^0-9a-zA-Z]+", " ", cleaned)
+        # First, handle special patterns
+        cleaned = original_name
+
+        # Replace common separators with spaces
+        cleaned = cleaned.replace("_", " ").replace("-", " ").replace(".", " ")
+
+        # Handle CamelCase by adding spaces before capitals
+        cleaned = re.sub(r'([a-z])([A-Z])', r'\1 \2', cleaned)
+
+        # Handle acronyms (e.g., HTTPValidationError -> HTTP Validation Error)
+        cleaned = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', cleaned)
+
+        # Remove any non-alphanumeric characters and replace with spaces
+        cleaned = re.sub(r'[^a-zA-Z0-9]+', ' ', cleaned)
+
+        # Remove extra spaces and convert to PascalCase
         sanitized = to_pascal_case(cleaned)
 
         if not sanitized:
