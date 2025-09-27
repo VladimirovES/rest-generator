@@ -79,3 +79,16 @@ def normalize_module_name(name: str) -> str:
         'model-rooms' -> 'model_rooms'
     """
     return normalize_directory_name(name)
+
+
+def sanitize_inline_model_name(context: str) -> str:
+    """Create a PascalCase model name from an arbitrary context string."""
+
+    cleaned = context.replace("/", " ").replace("-", " ")
+    cleaned = cleaned.replace("{", " ").replace("}", " ")
+    cleaned = cleaned.replace(":", " ").replace(".", " ")
+    cleaned = cleaned.replace("[", " ").replace("]", " ")
+    cleaned = cleaned.replace("(", " ").replace(")", " ")
+    cleaned = cleaned.replace("*", " ")
+
+    return to_pascal_case(cleaned) or "InlineModel"

@@ -9,6 +9,7 @@ from codegen.facade_generator import FacadeGenerator
 from codegen.generate_app_facade import generate_app_facade
 from codegen.enhanced_client_generator import EnhancedClientGenerator
 from codegen.tests_generator import TestsGenerator
+from codegen.asserts_generator import AssertsGenerator
 from swagger.loader import SwaggerLoader
 from swagger.processor import SwaggerProcessor
 from utils.logger import logger
@@ -49,11 +50,13 @@ class RestGenerator:
         swagger_url: str,
         output_dir: str = DEFAULT_OUTPUT_DIR,
         generate_tests: bool = False,
+        generate_asserts: bool = False,
     ):
         self.swagger_url = swagger_url
         self.output_dir = output_dir
         self.swagger_path = DEFAULT_SWAGGER_PATH
         self.generate_tests = generate_tests
+        self.generate_asserts = generate_asserts
 
     def generate(self) -> None:
         """Main generation workflow"""
@@ -71,14 +74,27 @@ class RestGenerator:
                 model_definitions,
             ) = self._generate_clients_with_models(swagger_spec, service_dir)
 
-            # Step 4: Generate test skeletons (optional)
-            if self.generate_tests:
-                self._generate_tests_structure(
-                    module_name,
-                    file_to_class,
-                    module_endpoints,
-                    model_definitions,
-                )
+            module_asserts: dict = {}
+            if self.generate_tests or self.generate_asserts:
+                tests_root, package_root = self._resolve_tests_root()
+
+                if self.generate_asserts:
+                    module_asserts = self._generate_asserts_structure(
+                        module_name,
+                        module_endpoints,
+                        model_definitions,
+                        tests_root,
+                    )
+
+                if self.generate_tests:
+                    self._generate_tests_structure(
+                        module_name,
+                        file_to_class,
+                        module_endpoints,
+                        tests_root,
+                        package_root,
+                        module_asserts,
+                    )
 
             # Step 5: Post-process code
             self._post_process_code(service_dir)
@@ -188,7 +204,9 @@ class RestGenerator:
         module_name: str,
         file_to_class: dict,
         module_endpoints: dict,
-        model_definitions: dict,
+        tests_root: str,
+        package_root: str,
+        module_asserts: dict,
     ) -> None:
         """Create placeholder tests mirroring the client structure."""
         if not file_to_class:
@@ -196,12 +214,16 @@ class RestGenerator:
             return
 
         try:
-            tests_root, package_root = self._resolve_tests_root()
             tests_generator = TestsGenerator(
-                tests_root, package_root, model_definitions
+                tests_root,
+                package_root,
+                include_asserts=self.generate_asserts,
             )
             tests_generator.generate(
-                module_name, file_to_class, module_endpoints
+                module_name,
+                file_to_class,
+                module_endpoints,
+                module_asserts,
             )
             service_tests_dir = os.path.join(tests_root, module_name)
             logger.info(
@@ -209,6 +231,29 @@ class RestGenerator:
             )
         except Exception as e:
             logger.warning(f"Failed to generate test skeletons: {e}")
+
+    def _generate_asserts_structure(
+        self,
+        module_name: str,
+        module_endpoints: dict,
+        model_definitions: dict,
+        tests_root: str,
+    ) -> dict:
+        """Create assertion helpers for endpoints."""
+        try:
+            asserts_generator = AssertsGenerator(tests_root, model_definitions)
+            module_asserts = asserts_generator.generate(
+                module_name, module_endpoints
+            )
+            if module_asserts:
+                logger.info(
+                    "Generated assertion helpers for service '%s'",
+                    module_name,
+                )
+            return module_asserts
+        except Exception as e:
+            logger.warning(f"Failed to generate assertion helpers: {e}")
+            return {}
 
     def _generate_facades(self, module_name: str, service_dir: str, file_to_class: dict) -> None:
         """Generate local and global facades"""
@@ -305,10 +350,21 @@ class RestGenerator:
     default=False,
     help="Generate placeholder test skeletons alongside clients",
 )
-def main(swagger_url: str, output_dir: str, tests: bool) -> None:
+@click.option(
+    "--asserts",
+    is_flag=True,
+    default=False,
+    help="Generate expect()-based assertion helpers for endpoints",
+)
+def main(swagger_url: str, output_dir: str, tests: bool, asserts: bool) -> None:
     """Generate REST API client from Swagger/OpenAPI specification"""
     try:
-        generator = RestGenerator(swagger_url, output_dir, generate_tests=tests)
+        generator = RestGenerator(
+            swagger_url,
+            output_dir,
+            generate_tests=tests,
+            generate_asserts=asserts,
+        )
         generator.generate()
     except RestGeneratorError as e:
         logger.error(str(e))
