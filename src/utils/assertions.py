@@ -5,9 +5,7 @@ from datetime import datetime, date, timedelta
 from utils.report_utils import Reporter
 from utils.logger import logger
 
-
 class Expect:
-    """Класс для проверок."""
 
     MAX_STRING_LENGTH = 200
     MAX_COLLECTION_PREVIEW = 5
@@ -19,7 +17,6 @@ class Expect:
         self._negated = False
 
     def _not(self) -> "Expect":
-        """Создает инвертированную проверку."""
         new_expect = Expect(self.actual, self._name)
         new_expect._negated = not self._negated
         return new_expect
@@ -138,7 +135,7 @@ class Expect:
         lines = []
 
         negation = "НЕ " if self._negated else ""
-        lines.append(f'"{self._name}"')
+        lines.append(f'"{self._name}" должно {negation}{expectation.strip()}')
 
         if expected_formatted:
             lines.append(f"Expected: {expected_formatted}")
@@ -165,9 +162,8 @@ class Expect:
         raise AssertionError(message)
 
     def _success(self, message: str):
-        """Логирует успешную проверку."""
         success_message = f'✓ "{self._name}" {message}'
-        logger.debug(success_message)
+        print(success_message)
 
     def _check(
         self,
@@ -176,7 +172,6 @@ class Expect:
         expected: Any = None,
         additional_info: str = None,
     ) -> "Expect":
-        """Выполняет проверку с логированием."""
         message_step = f'"{self._name}" {expectation}'
 
         with Reporter.step(message_step):
@@ -210,6 +205,23 @@ class Expect:
             f"любое значение кроме {self._format_value(expected)}",
         )
 
+    def is_not_one_of(self, *values: Any) -> "Expect":
+        """Проверяет, что значение НЕ является одним из указанных."""
+        values_list = list(values)
+        is_not_one_of = self.actual not in values_list
+
+        formatted_values = [self._format_value(v, 30) for v in values_list[:10]]
+        if len(values_list) > 10:
+            formatted_values.append("...")
+
+        forbidden_str = f"НЕ одно из: [{', '.join(formatted_values)}]"
+
+        return self._check(
+            is_not_one_of,
+            f"НЕ  одним из {len(values_list)} значений",
+            forbidden_str,
+        )
+
     def is_none(self) -> "Expect":
         """Проверяет, что значение None."""
         return self._check(self.actual is None, " None", "None")
@@ -220,7 +232,7 @@ class Expect:
             self.actual is not None, "не None", "любое значение кроме None"
         )
 
-    def is_greater_than(self, expected: Union[int, float]) -> "Expect":
+    def is_greater_than(self, expected: Union[int, float, datetime]) -> "Expect":
         """Проверяет, что значение больше ожидаемого."""
         return self._check(
             self.actual > expected,
@@ -312,7 +324,7 @@ class Expect:
 
         return self._check(
             actual_length == expected_length,
-            f"имеет {expected_length}",
+            f"имеет длину {expected_length}",
             f"длина {expected_length}",
             f"Фактическая длина: {actual_length}",
         )
@@ -650,3 +662,128 @@ def expect(actual: Any, name: str) -> Expect:
         expect(items, "Список товаров").is_not_empty().has_length(5)
     """
     return Expect(actual, name)
+
+
+class SoftAssertionError(AssertionError):
+    pass
+
+
+class SoftExpect(Expect):
+    def __init__(self, actual: Any, name: str, collector: "SoftAssertions"):
+        super().__init__(actual, name)
+        self._collector = collector
+
+    def _not(self) -> "SoftExpect":
+        new_expect = SoftExpect(self.actual, self._name, self._collector)
+        new_expect._negated = not self._negated
+        return new_expect
+
+    def _fail(
+        self, expectation: str, expected: Any = None, additional_info: str = None
+    ):
+        actual_formatted = self._format_value(self.actual)
+        expected_formatted = (
+            self._format_value(expected) if expected is not None else None
+        )
+        message = self._create_error_message(
+            expectation, actual_formatted, expected_formatted, additional_info
+        )
+        self._collector._add_failure(message)
+        Reporter.message(f"Soft assertion failed:\n{message}")
+        raise SoftAssertionError(message)
+
+    def _success(self, message: str):
+        if self._collector.log_success:
+            super()._success(message)
+
+    def _check(
+        self,
+        condition: bool,
+        expectation: str,
+        expected: Any = None,
+        additional_info: str = None,
+    ) -> "SoftExpect":
+        try:
+            return super()._check(condition, expectation, expected, additional_info)
+        except SoftAssertionError:
+            return self
+
+
+class SoftAssertions:
+    def __init__(self, *, log_success: bool = False, step_name: Optional[str] = None):
+        self._failures: List[str] = []
+        self.log_success = log_success
+        self._step_name = step_name
+        self._step_context = None
+
+    def expect(self, actual: Any, name: str) -> SoftExpect:
+        return SoftExpect(actual, name, self)
+
+    def __call__(self, actual: Any, name: str) -> SoftExpect:
+        return self.expect(actual, name)
+
+    def _add_failure(self, message: str):
+        self._failures.append(message)
+
+    def check(self, func: Callable, *args, description: Optional[str] = None, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except AssertionError as exc:
+            details = str(exc) if str(exc) else repr(exc)
+            if description:
+                combined = f"{description}:\n{details}" if details else description
+            else:
+                combined = details
+            self._add_failure(combined)
+            Reporter.message(f"Soft assertion failed:\n{combined}")
+        return self
+
+    def assert_all(self):
+        if not self._failures:
+            return
+
+        formatted = "\n\n".join(
+            f"{idx + 1}) {message}" for idx, message in enumerate(self._failures)
+        )
+        raise AssertionError(
+            f"Soft assertion failures ({len(self._failures)}):\n{formatted}"
+        )
+
+    def __enter__(self) -> "SoftAssertions":
+        if self._step_name:
+            # Use Reporter.step which does not auto-log to console
+            self._step_context = Reporter.step(self._step_name)
+            self._step_context.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        new_exc = None
+
+        if exc_type is None:
+            try:
+                self.assert_all()
+            except Exception as e:  # noqa: B902
+                new_exc = e
+
+        final_exc_type = exc_type
+        final_exc_value = exc_val
+        final_exc_tb = exc_tb
+
+        if new_exc is not None:
+            final_exc_type = type(new_exc)
+            final_exc_value = new_exc
+            final_exc_tb = new_exc.__traceback__
+
+        if self._step_context:
+            self._step_context.__exit__(final_exc_type, final_exc_value, final_exc_tb)
+
+        if new_exc is not None:
+            raise new_exc
+
+        return False
+
+
+def soft_assertions(step_name: Optional[str] = None, *, log_success: bool = False) -> SoftAssertions:
+    """Convenience factory for using soft assertions as a context manager."""
+
+    return SoftAssertions(log_success=log_success, step_name=step_name)
