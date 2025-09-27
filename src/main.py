@@ -65,14 +65,19 @@ class RestGenerator:
             service_dir = self._setup_directories(module_name)
 
             # Step 3: Generate clients with models
-            file_to_class, module_endpoints = self._generate_clients_with_models(
-                swagger_spec, service_dir
-            )
+            (
+                file_to_class,
+                module_endpoints,
+                model_definitions,
+            ) = self._generate_clients_with_models(swagger_spec, service_dir)
 
             # Step 4: Generate test skeletons (optional)
             if self.generate_tests:
                 self._generate_tests_structure(
-                    module_name, file_to_class, module_endpoints
+                    module_name,
+                    file_to_class,
+                    module_endpoints,
+                    model_definitions,
                 )
 
             # Step 5: Post-process code
@@ -128,7 +133,7 @@ class RestGenerator:
 
     def _generate_clients_with_models(
         self, swagger_spec: object, service_dir: str
-    ) -> Tuple[dict, dict]:
+    ) -> Tuple[dict, dict, dict]:
         """Generate client classes with models per endpoint"""
         try:
             logger.info("Extracting endpoints and imports from swagger...")
@@ -152,9 +157,10 @@ class RestGenerator:
             )
             file_to_class = client_gen.generate_clients_with_models(service_dir)
             module_endpoints = client_gen.get_module_endpoints()
+            model_definitions = client_gen.get_model_definitions()
 
             logger.info(f"Generated {len(file_to_class)} client files with models")
-            return file_to_class, module_endpoints
+            return file_to_class, module_endpoints, model_definitions
 
         except Exception as e:
             raise CodeGenerationError(f"Failed to generate clients with models: {e}") from e
@@ -178,7 +184,11 @@ class RestGenerator:
             # Don't fail the entire process for formatting issues
 
     def _generate_tests_structure(
-        self, module_name: str, file_to_class: dict, module_endpoints: dict
+        self,
+        module_name: str,
+        file_to_class: dict,
+        module_endpoints: dict,
+        model_definitions: dict,
     ) -> None:
         """Create placeholder tests mirroring the client structure."""
         if not file_to_class:
@@ -187,8 +197,12 @@ class RestGenerator:
 
         try:
             tests_root, package_root = self._resolve_tests_root()
-            tests_generator = TestsGenerator(tests_root, package_root)
-            tests_generator.generate(module_name, file_to_class, module_endpoints)
+            tests_generator = TestsGenerator(
+                tests_root, package_root, model_definitions
+            )
+            tests_generator.generate(
+                module_name, file_to_class, module_endpoints
+            )
             service_tests_dir = os.path.join(tests_root, module_name)
             logger.info(
                 f"Generated placeholder tests for service '{module_name}' at '{service_tests_dir}'"

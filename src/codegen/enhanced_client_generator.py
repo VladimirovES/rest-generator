@@ -2,11 +2,11 @@
 
 import os
 from typing import List, Dict, Any
-from pathlib import Path
 
 from codegen.data_models import Endpoint, MethodContext
 from codegen.client_generator import ClientGenerator
 from dto_parser.model_generator import CustomModelGenerator
+from dto_parser.schema_parser import ModelDefinition
 from utils.logger import logger
 from utils.naming import normalize_directory_name
 
@@ -81,6 +81,14 @@ class EnhancedClientGenerator(ClientGenerator):
     def get_module_endpoints(self) -> Dict[str, List[Endpoint]]:
         """Return mapping of module names to their endpoints."""
         return self.module_endpoints
+
+    def get_model_definitions(self) -> Dict[str, ModelDefinition]:
+        """Expose parsed model definitions for downstream generators."""
+        if self.model_generator and self.model_generator.all_models:
+            return self.model_generator.all_models
+        if self.model_generator:
+            return self.model_generator.parser.parsed_models
+        return {}
 
     def _generate_module_client_file(self, module_dir: str, endpoints: List[Endpoint], class_name: str, model_names: set) -> None:
         """Generate a client file for a module."""
