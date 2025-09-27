@@ -1,7 +1,9 @@
 """Generator for assertion helper modules built on top of expect()."""
 
 import os
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 from dto_parser.schema_parser import ModelDefinition
@@ -17,68 +19,126 @@ class ModuleAssertions:
     module_name: str
     methods: Tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        if not self.module_name.strip():
+            raise ValueError("Module name cannot be empty")
 
-class AssertsGenerator:
-    """Generate reusable assert helpers for each generated endpoint."""
 
-    def __init__(self, base_dir: str, model_definitions: Dict[str, ModelDefinition]):
-        self.base_dir = base_dir
-        self.model_definitions = model_definitions
+class IAssertionGenerator(ABC):
+    """Interface for assertion generators."""
+
+    @abstractmethod
+    def generate(
+        self, service_name: str, module_endpoints: Dict[str, List[Endpoint]]
+    ) -> List[ModuleAssertions]:
+        """Generate assertion modules."""
+        pass
+
+
+class AssertionGenerator(IAssertionGenerator):
+    """Generate reusable assertion helpers for each generated endpoint."""
+
+    def __init__(self, base_dir: str, model_definitions: Dict[str, ModelDefinition]) -> None:
+        """Initialize the assertion generator.
+
+        Args:
+            base_dir: Base directory for generated assertions
+            model_definitions: Dictionary of model definitions for type checking
+
+        Raises:
+            ValueError: If base_dir is empty or invalid
+            TypeError: If model_definitions is not a dict
+        """
+        if not base_dir.strip():
+            raise ValueError("base_dir cannot be empty")
+        if not isinstance(model_definitions, dict):
+            raise TypeError("model_definitions must be a dictionary")
+
+        self._base_dir = Path(base_dir)
+        self._model_definitions = model_definitions
 
     def generate(
         self, service_name: str, module_endpoints: Dict[str, List[Endpoint]]
     ) -> List[ModuleAssertions]:
-        """Create assert modules and describe them with dataclasses."""
+        """Create assertion modules and describe them with dataclasses.
+
+        Args:
+            service_name: Name of the service to generate assertions for
+            module_endpoints: Mapping of module names to their endpoints
+
+        Returns:
+            List of ModuleAssertions describing generated assertion helpers
+
+        Raises:
+            ValueError: If service_name is empty
+            TypeError: If module_endpoints is not a dict
+        """
+        if not service_name.strip():
+            raise ValueError("service_name cannot be empty")
+        if not isinstance(module_endpoints, dict):
+            raise TypeError("module_endpoints must be a dictionary")
 
         results: List[ModuleAssertions] = []
 
-        service_dir = os.path.join(self.base_dir, service_name)
-        os.makedirs(service_dir, exist_ok=True)
-        self._ensure_init(self.base_dir)
-        self._ensure_init(service_dir)
+        service_dir = self._base_dir / service_name
+        service_dir.mkdir(exist_ok=True)
+        self._ensure_init_file(self._base_dir)
+        self._ensure_init_file(service_dir)
 
         for module_name in sorted(module_endpoints):
             infos = build_endpoint_info(module_endpoints[module_name])
             if not infos:
                 continue
 
-            module_dir = os.path.join(service_dir, module_name)
-            os.makedirs(module_dir, exist_ok=True)
-            self._ensure_init(module_dir)
+            module_dir = service_dir / module_name
+            module_dir.mkdir(exist_ok=True)
+            self._ensure_init_file(module_dir)
 
-            asserts_dir = os.path.join(module_dir, "asserts")
-            os.makedirs(asserts_dir, exist_ok=True)
-            self._ensure_init(asserts_dir)
+            asserts_dir = module_dir / "asserts"
+            asserts_dir.mkdir(exist_ok=True)
+            self._ensure_init_file(asserts_dir)
 
-            created: List[str] = []
+            created_methods: List[str] = []
             for info in infos:
-                self._create_assert_file(asserts_dir, module_name, info)
-                created.append(info.method_name)
+                self._create_assertion_file(asserts_dir, module_name, info)
+                created_methods.append(info.method_name)
 
-            if created:
+            if created_methods:
                 results.append(
                     ModuleAssertions(
                         module_name=module_name,
-                        methods=tuple(sorted(created)),
+                        methods=tuple(sorted(created_methods)),
                     )
                 )
 
         return results
 
-    def _ensure_init(self, directory: str) -> None:
-        init_file = os.path.join(directory, "__init__.py")
-        if os.path.exists(init_file):
-            return
-        with open(init_file, "w", encoding="utf-8") as f:
-            f.write('"""Package marker."""\n')
+    def _ensure_init_file(self, directory: Path) -> None:
+        """Ensure __init__.py exists in the directory.
 
-    def _create_assert_file(
+        Args:
+            directory: Directory path where __init__.py should be created
+        """
+        init_file = directory / "__init__.py"
+        if init_file.exists():
+            return
+
+        init_file.write_text('"""Package marker."""\n', encoding="utf-8")
+
+    def _create_assertion_file(
         self,
-        asserts_dir: str,
+        asserts_dir: Path,
         module_name: str,
         info: EndpointInfo,
     ) -> None:
-        file_path = os.path.join(asserts_dir, f"assert_{info.method_name}.py")
+        """Create an assertion file for a specific endpoint.
+
+        Args:
+            asserts_dir: Directory to create the assertion file in
+            module_name: Name of the module
+            info: Endpoint information
+        """
+        file_path = asserts_dir / f"assert_{info.method_name}.py"
 
         http_info = f"{info.http_method} {info.path}".strip()
         doc_line = http_info or f"Assertions for {module_name}.{info.method_name}"
@@ -95,8 +155,7 @@ class AssertsGenerator:
 
         content = "\n".join(lines) + "\n"
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        file_path.write_text(content, encoding="utf-8")
 
     def _build_response_assertions(self, info: EndpointInfo) -> List[str]:
         lines: List[str] = ["    expect(response, \"response\").is_not_none()"]
@@ -116,7 +175,7 @@ class AssertsGenerator:
         if is_list:
             lines.append("    expect(response, \"response\").is_not_empty()")
             lines.append("    item = response[0]  # TODO: iterate over all items")
-            if base_type and base_type in self.model_definitions:
+            if base_type and base_type in self._model_definitions:
                 lines.extend(
                     self._build_field_expectations(
                         base_type,
@@ -126,7 +185,7 @@ class AssertsGenerator:
                         indent="    ",
                     )
                 )
-        elif base_type and base_type in self.model_definitions:
+        elif base_type and base_type in self._model_definitions:
             lines.extend(
                 self._build_field_expectations(
                     base_type,
@@ -153,7 +212,7 @@ class AssertsGenerator:
         visited = set(visited)
         visited.add(model_name)
 
-        model_def = self.model_definitions.get(model_name)
+        model_def = self._model_definitions.get(model_name)
         if not model_def or not model_def.fields:
             return []
 
@@ -203,7 +262,7 @@ class AssertsGenerator:
     ) -> List[str]:
         lines: List[str] = []
 
-        if base_type in self.model_definitions:
+        if base_type in self._model_definitions:
             if is_list:
                 lines.append(
                     f"{indent}expect({field_expr}, \"{field_path}\").is_not_empty()"

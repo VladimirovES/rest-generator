@@ -10,10 +10,8 @@
 
 ## Установка
 
-Установите пакет со всеми зависимостями через `pip`:
-
 ```bash
-Пока н едобавлять
+pip install git+https://github.com/evgenyvladimirov/rest-generator.git@refactor-code
 ```
 
 # Генерация случайных данных для Pydantic моделей
@@ -41,7 +39,11 @@ data_dict = GenData(ApplicationResponse).fill_all().build().model_dump()
 ## Как использовать
 ```bash
 rest_gen --swagger-url <URL_к_Swagger_JSON>
+rest_gen --swagger-url swagger.json --tests
+rest_gen --swagger-url swagger.json --tests --asserts --output-dir clients
 ```
+
+Дополнительные материалы см. в `docs/SETUP.md` и `docs/PROMPTS.md`.
 ### Структура, создаваемая в проекте
 ```
 http_clients/
