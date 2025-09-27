@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 from dto_parser.type_resolver import TypeResolver
-from utils.naming import sanitize_inline_model_name, to_pascal_case
+from utils.naming import to_pascal_case
 
 
 @dataclass
@@ -43,7 +43,6 @@ class SchemaParser:
         self.type_resolver.set_ref_name_transform(self._get_or_create_model_name)
         self.parsed_models: Dict[str, ModelDefinition] = {}
         self.endpoint_models: Dict[str, Set[str]] = {}  # endpoint -> model names
-        self.inline_model_cache: Dict[int, str] = {}
 
     def parse_all_schemas(self) -> Dict[str, ModelDefinition]:
         """Parse all schema definitions from the OpenAPI spec."""
@@ -81,12 +80,7 @@ class SchemaParser:
         parameters = operation.get("parameters", [])
         for param in parameters:
             if "schema" in param:
-                context = (
-                    f"{method.upper()}_{path}_param_{param.get('name', 'param')}"
-                )
-                models.update(
-                    self._extract_models_from_schema(param["schema"], context)
-                )
+                models.update(self._extract_models_from_schema(param["schema"]))
 
         # Check request body
         request_body = operation.get("requestBody", {})
@@ -94,12 +88,8 @@ class SchemaParser:
             content = request_body.get("content", {})
             for media_type, media_content in content.items():
                 if "schema" in media_content:
-                    context = f"{method.upper()}_{path}_request_{media_type}"
                     models.update(
-                        self._extract_models_from_schema(
-                            media_content["schema"], context
-                        )
-                    )
+                        self._extract_models_from_schema(media_content["schema"]))
 
         # Check responses
         responses = operation.get("responses", {})
@@ -107,14 +97,8 @@ class SchemaParser:
             content = response.get("content", {})
             for media_type, media_content in content.items():
                 if "schema" in media_content:
-                    context = (
-                        f"{method.upper()}_{path}_response_{status_code}_{media_type}"
-                    )
                     models.update(
-                        self._extract_models_from_schema(
-                            media_content["schema"], context
-                        )
-                    )
+                        self._extract_models_from_schema(media_content["schema"]))
 
         return models
 
@@ -156,9 +140,7 @@ class SchemaParser:
         self.name_mapping[original_name] = candidate
         return candidate
 
-    def _extract_models_from_schema(
-        self, schema: Dict[str, Any], context: str
-    ) -> Set[str]:
+    def _extract_models_from_schema(self, schema: Dict[str, Any]) -> Set[str]:
         """Recursively extract all model references from a schema."""
         models: Set[str] = set()
 
@@ -171,69 +153,25 @@ class SchemaParser:
             return models
 
         if "allOf" in schema:
-            for idx, sub_schema in enumerate(schema["allOf"]):
-                models.update(
-                    self._extract_models_from_schema(
-                        sub_schema, f"{context}_allOf_{idx}"
-                    )
-                )
-            return models
+            for sub_schema in schema["allOf"]:
+                models.update(self._extract_models_from_schema(sub_schema))
 
         if "oneOf" in schema:
-            for idx, sub_schema in enumerate(schema["oneOf"]):
-                models.update(
-                    self._extract_models_from_schema(
-                        sub_schema, f"{context}_oneOf_{idx}"
-                    )
-                )
-            return models
+            for sub_schema in schema["oneOf"]:
+                models.update(self._extract_models_from_schema(sub_schema))
 
         if "anyOf" in schema:
-            for idx, sub_schema in enumerate(schema["anyOf"]):
-                models.update(
-                    self._extract_models_from_schema(
-                        sub_schema, f"{context}_anyOf_{idx}"
-                    )
-                )
-            return models
+            for sub_schema in schema["anyOf"]:
+                models.update(self._extract_models_from_schema(sub_schema))
 
-        schema_type = schema.get("type")
+        if schema.get("type") == "array" and "items" in schema:
+            models.update(self._extract_models_from_schema(schema["items"]))
 
-        if schema_type == "array" and "items" in schema:
-            models.update(
-                self._extract_models_from_schema(
-                    schema["items"], f"{context}_item"
-                )
-            )
-            return models
-
-        if schema_type == "object" or "properties" in schema:
-            model_name = self._ensure_inline_model(schema, context)
-            models.add(model_name)
-
-            properties = schema.get("properties", {})
-            for prop_name, prop_schema in properties.items():
-                models.update(
-                    self._extract_models_from_schema(
-                        prop_schema, f"{context}_{prop_name}"
-                    )
-                )
-
-            return models
+        if schema.get("type") == "object" and "properties" in schema:
+            for prop_schema in schema["properties"].values():
+                models.update(self._extract_models_from_schema(prop_schema))
 
         return models
-
-    def _ensure_inline_model(self, schema: Dict[str, Any], context: str) -> str:
-        key = id(schema)
-        if key in self.inline_model_cache:
-            return self.inline_model_cache[key]
-
-        base_name = sanitize_inline_model_name(context)
-        model_name = self._get_or_create_model_name(base_name)
-        model_def = self._parse_object_schema(schema, model_name)
-        self.parsed_models[model_def.name] = model_def
-        self.inline_model_cache[key] = model_def.name
-        return model_def.name
 
     def _parse_schema_definition(self, original_name: str, schema: Dict[str, Any]) -> ModelDefinition:
         """Parse a single schema definition into a ModelDefinition."""
@@ -271,19 +209,15 @@ class SchemaParser:
 
         # Clear imports and collect during field parsing
         self.type_resolver.imports.clear()
-        self.type_resolver.model_references.clear()
 
         fields = []
         for field_name, field_schema in properties.items():
-            field = self._parse_field(
-                model_name, field_name, field_schema, field_name in required_fields
-            )
+            field = self._parse_field(field_name, field_schema, field_name in required_fields)
             fields.append(field)
 
         # Capture imports for this model
         model_imports = self.type_resolver.imports.copy()
         self.type_resolver.imports.clear()
-        self.type_resolver.model_references.clear()
 
         return ModelDefinition(
             name=model_name,
@@ -293,12 +227,9 @@ class SchemaParser:
             imports=model_imports
         )
 
-    def _parse_field(
-        self, parent_model: str, name: str, schema: Dict[str, Any], required: bool
-    ) -> ModelField:
+    def _parse_field(self, name: str, schema: Dict[str, Any], required: bool) -> ModelField:
         """Parse a field schema into a ModelField."""
-        type_hint = f"{parent_model}_{name}"
-        type_str = self.type_resolver.resolve_type(schema, type_hint)
+        type_str = self.type_resolver.resolve_type(schema, name)
 
         # Handle default values
         default = None

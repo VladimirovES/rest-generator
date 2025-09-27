@@ -3,7 +3,6 @@ from typing import Dict, Any, List, Optional
 from http import HTTPStatus
 
 from codegen.data_models import Endpoint, Parameter
-from utils.naming import sanitize_inline_model_name
 from swagger.swagger_models import (
     SwaggerSpec,
     SwaggerOperation,
@@ -52,9 +51,7 @@ class SwaggerProcessor:
             self, path: str, http_method: str, operation: SwaggerOperation, tag: str
     ) -> Endpoint:
 
-        expected_status, return_type = self._extract_response_info(
-            path, http_method, operation.responses
-        )
+        expected_status, return_type = self._extract_response_info(operation.responses)
 
         return Endpoint(
             tag=tag,
@@ -63,7 +60,7 @@ class SwaggerProcessor:
             path=path,
             path_params=self._extract_parameters(operation.parameters, "path"),
             query_params=self._extract_parameters(operation.parameters, "query"),
-            payload_type=self._extract_payload_type(path, http_method, operation.requestBody),
+            payload_type=self._extract_payload_type(operation.requestBody),
             expected_status=expected_status,
             return_type=return_type,
             description=operation.description or "",
@@ -93,12 +90,7 @@ class SwaggerProcessor:
                 cleaned_segments.append(seg.capitalize())
         return "".join(cleaned_segments)
 
-    def _extract_payload_type(
-        self,
-        path: str,
-        http_method: str,
-        request_body: Optional[SwaggerRequestBody],
-    ) -> str:
+    def _extract_payload_type(self, request_body: Optional[SwaggerRequestBody]) -> str:
         if not request_body:
             return None
 
@@ -107,15 +99,11 @@ class SwaggerProcessor:
         for ctype_key in (CONTENT_TYPE_JSON, CONTENT_TYPE_MULTIPART):
             if ctype_key in content:
                 schema = content[ctype_key].get("schema", {})
-                context = f"{http_method.upper()}_{path}_request_{ctype_key}"
-                return self._map_openapi_type_to_python(schema, context)
+                return self._map_openapi_type_to_python(schema)
         return None
 
     def _extract_response_info(
-        self,
-        path: str,
-        http_method: str,
-        responses: Dict[str, SwaggerResponse],
+            self, responses: Dict[str, SwaggerResponse]
     ) -> tuple[str, str]:
         expected_status = "OK"
         return_type = "Any"
@@ -128,10 +116,7 @@ class SwaggerProcessor:
 
                 if CONTENT_TYPE_JSON in resp_content:
                     schema = resp_content[CONTENT_TYPE_JSON].get("schema", {})
-                    context = (
-                        f"{http_method.upper()}_{path}_response_{status_code}_{CONTENT_TYPE_JSON}"
-                    )
-                    return_type = self._map_openapi_type_to_python(schema, context)
+                    return_type = self._map_openapi_type_to_python(schema)
                 elif CONTENT_TYPE_OCTET_STREAM in resp_content:
                     return_type = "bytes"
                 elif CONTENT_TYPE_TEXT_PLAIN in resp_content:
@@ -147,25 +132,12 @@ class SwaggerProcessor:
         except ValueError:
             return "OK"
 
-    def _map_openapi_type_to_python(
-        self, schema: Dict[str, Any], context: str = ""
-    ) -> str:
+    def _map_openapi_type_to_python(self, schema: Dict[str, Any]) -> str:
         if "$ref" in schema:
             raw_name = schema["$ref"].split("/")[-1]
             return self._remove_underscores(raw_name)
 
         openapi_type = schema.get("type", "Any")
-
-        if openapi_type == "array":
-            item_schema = schema.get("items", {})
-            item_context = f"{context}_item" if context else "item"
-            item_type = self._map_openapi_type_to_python(item_schema, item_context)
-            return f"List[{item_type}]"
-
-        if openapi_type == "object" or "properties" in schema:
-            if context:
-                return sanitize_inline_model_name(context)
-            return "Dict[str, Any]"
         if openapi_type == "array":
             items = schema.get("items", {})
             return f"List[{self._map_openapi_type_to_python(items)}]"
