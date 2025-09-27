@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Tuple
+from typing import List, Tuple
 import click
 
 from dotenv import load_dotenv
@@ -9,7 +9,7 @@ from codegen.facade_generator import FacadeGenerator
 from codegen.generate_app_facade import generate_app_facade
 from codegen.enhanced_client_generator import EnhancedClientGenerator
 from codegen.tests_generator import TestsGenerator
-from codegen.asserts_generator import AssertsGenerator
+from codegen.asserts_generator import AssertsGenerator, ModuleAssertions
 from swagger.loader import SwaggerLoader
 from swagger.processor import SwaggerProcessor
 from utils.logger import logger
@@ -74,7 +74,7 @@ class RestGenerator:
                 model_definitions,
             ) = self._generate_clients_with_models(swagger_spec, service_dir)
 
-            module_asserts: dict = {}
+            module_asserts: List[ModuleAssertions] = []
             if self.generate_tests or self.generate_asserts:
                 tests_root, package_root = self._resolve_tests_root()
 
@@ -206,7 +206,7 @@ class RestGenerator:
         module_endpoints: dict,
         tests_root: str,
         package_root: str,
-        module_asserts: dict,
+        module_asserts: List[ModuleAssertions],
     ) -> None:
         """Create placeholder tests mirroring the client structure."""
         if not file_to_class:
@@ -238,7 +238,7 @@ class RestGenerator:
         module_endpoints: dict,
         model_definitions: dict,
         tests_root: str,
-    ) -> dict:
+    ) -> List[ModuleAssertions]:
         """Create assertion helpers for endpoints."""
         try:
             asserts_generator = AssertsGenerator(tests_root, model_definitions)
@@ -253,7 +253,7 @@ class RestGenerator:
             return module_asserts
         except Exception as e:
             logger.warning(f"Failed to generate assertion helpers: {e}")
-            return {}
+            return []
 
     def _generate_facades(self, module_name: str, service_dir: str, file_to_class: dict) -> None:
         """Generate local and global facades"""

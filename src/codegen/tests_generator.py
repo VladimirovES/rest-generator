@@ -1,8 +1,9 @@
 """Generator for pytest placeholders referencing generated clients."""
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
+from codegen.asserts_generator import ModuleAssertions
 from codegen.data_models import Endpoint
 from codegen.endpoint_metadata import EndpointInfo, build_endpoint_info
 
@@ -25,9 +26,11 @@ class TestsGenerator:
         service_name: str,
         file_to_class: Dict[str, str],
         module_endpoints: Dict[str, List[Endpoint]],
-        module_asserts: Optional[Dict[str, List[str]]] = None,
+        module_asserts: Optional[List[ModuleAssertions]] = None,
     ) -> None:
-        module_asserts = module_asserts or {}
+        asserts_map = {
+            item.module_name: set(item.methods) for item in (module_asserts or [])
+        }
 
         service_dir = os.path.join(self.base_dir, service_name)
         os.makedirs(service_dir, exist_ok=True)
@@ -60,7 +63,7 @@ class TestsGenerator:
                 module_name,
                 class_name,
                 entries,
-                module_asserts.get(module_name, []),
+                asserts_map.get(module_name, set()),
             )
 
             with open(test_file, "w", encoding="utf-8") as f:
@@ -72,7 +75,7 @@ class TestsGenerator:
         module_name: str,
         class_name: str,
         entries: List[EndpointInfo],
-        asserts_methods: List[str],
+        asserts_methods: Set[str],
     ) -> str:
         lines: List[str] = []
 

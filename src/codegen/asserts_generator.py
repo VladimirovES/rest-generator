@@ -1,12 +1,21 @@
 """Generator for assertion helper modules built on top of expect()."""
 
 import os
+from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple
 
 from dto_parser.schema_parser import ModelDefinition
 
 from codegen.data_models import Endpoint
 from codegen.endpoint_metadata import EndpointInfo, build_endpoint_info
+
+
+@dataclass(frozen=True)
+class ModuleAssertions:
+    """Container describing generated assertion helpers for a module."""
+
+    module_name: str
+    methods: Tuple[str, ...]
 
 
 class AssertsGenerator:
@@ -18,10 +27,10 @@ class AssertsGenerator:
 
     def generate(
         self, service_name: str, module_endpoints: Dict[str, List[Endpoint]]
-    ) -> Dict[str, List[str]]:
-        """Create assert modules and return mapping of module -> assert function names."""
+    ) -> List[ModuleAssertions]:
+        """Create assert modules and describe them with dataclasses."""
 
-        module_to_asserts: Dict[str, List[str]] = {}
+        results: List[ModuleAssertions] = []
 
         service_dir = os.path.join(self.base_dir, service_name)
         os.makedirs(service_dir, exist_ok=True)
@@ -47,9 +56,14 @@ class AssertsGenerator:
                 created.append(info.method_name)
 
             if created:
-                module_to_asserts[module_name] = created
+                results.append(
+                    ModuleAssertions(
+                        module_name=module_name,
+                        methods=tuple(sorted(created)),
+                    )
+                )
 
-        return module_to_asserts
+        return results
 
     def _ensure_init(self, directory: str) -> None:
         init_file = os.path.join(directory, "__init__.py")
