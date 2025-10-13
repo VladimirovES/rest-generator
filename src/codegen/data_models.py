@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -9,6 +10,19 @@ class Parameter:
     name: str
     type: str
     required: bool = False
+
+    @property
+    def python_name(self) -> str:
+        """Convert parameter name to valid Python identifier"""
+        # First convert CamelCase to snake_case
+        python_name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', self.name)
+        python_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', python_name)
+        # Then replace dots with underscores
+        python_name = python_name.replace('.', '_')
+        # Convert to lowercase and clean up multiple underscores
+        python_name = python_name.lower()
+        python_name = re.sub('_+', '_', python_name)
+        return python_name
 
 
 @dataclass
@@ -32,7 +46,7 @@ class Endpoint:
 
     @property
     def method_parameters(self) -> List[str]:
-        return [f"{p.name}: {p.type}" for p in self.path_params if p.required]
+        return [f"{p.python_name}: {p.type}" for p in self.path_params if p.required]
 
 
 @dataclass
@@ -71,14 +85,14 @@ class ParameterBuilder:
         return params
 
     def _build_path_params(self) -> List[str]:
-        return [f"{p.name}: {p.type}" for p in self.endpoint.path_params]
+        return [f"{p.python_name}: {p.type}" for p in self.endpoint.path_params]
 
     def _build_required_query_params(self) -> List[str]:
-        return [f"{p.name}: {p.type}" for p in self.endpoint.query_params if p.required]
+        return [f"{p.python_name}: {p.type}" for p in self.endpoint.query_params if p.required]
 
     def _build_optional_query_params(self) -> List[str]:
         return [
-            f"{p.name}: Optional[{p.type}] = None"
+            f"{p.python_name}: Optional[{p.type}] = None"
             for p in self.endpoint.query_params
             if not p.required
         ]
@@ -107,6 +121,13 @@ class HttpCallBuilder:
     def build_path_assignment(self) -> str:
         """Generate path variable assignment"""
         full_path = f"{self.service_path}{self.endpoint.path}"
+
+        # Replace path parameters with their python_name equivalents
+        # e.g., {Id} -> {id}, {UserId} -> {user_id}
+        for param in self.endpoint.path_params:
+            # Replace {OriginalName} with {python_name}
+            full_path = full_path.replace(f"{{{param.name}}}", f"{{{param.python_name}}}")
+
         return full_path
 
     def _build_get_call(self) -> str:
@@ -155,7 +176,7 @@ class HttpCallBuilder:
         """Build query parameters dictionary"""
         params_dict = "{"
         for param in self.endpoint.query_params:
-            params_dict += f"'{param.name}': {param.name}, "
+            params_dict += f"'{param.name}': {param.python_name}, "
 
         if include_params:
             params_dict += "**(params or {})"
@@ -197,7 +218,8 @@ class ReturnStatementBuilder:
 
     def _build_primitive_return(self, condition: str) -> str:
         """Primitive type return"""
-        return f"return {self.endpoint.return_type}(r_json) {condition}"
+        # response.json() already returns correct Python types, no conversion needed
+        return f"return r_json {condition}"
 
     def _build_model_return(self, condition: str) -> str:
         """Model return"""

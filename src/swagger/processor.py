@@ -85,7 +85,11 @@ class SwaggerProcessor:
             if not seg:
                 continue
             if re.match(r"^[A-Z][a-zA-Z0-9]*$", seg):
-                cleaned_segments.append(seg)
+                # Convert VM to Vm to match datamodel-codegen output
+                if seg == "VM":
+                    cleaned_segments.append("Vm")
+                else:
+                    cleaned_segments.append(seg)
             else:
                 cleaned_segments.append(seg.capitalize())
         return "".join(cleaned_segments)

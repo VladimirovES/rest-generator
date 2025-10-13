@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from typing import List, Tuple
 import click
@@ -184,13 +185,13 @@ class RestGenerator:
     def _post_process_code(self, service_dir: str) -> None:
         """Run code formatting and cleanup"""
         try:
-            logger.info("Running code formatting...")
+            logger.info("Running code formatting and fixes...")
+
+            # Fix syntax issues first
+            self._fix_syntax_issues(service_dir)
+
+            # Then format with black (skip autoflake to avoid hanging)
             from utils.shell import run_command
-
-            # Run autoflake to remove unused imports
-            run_command(f"autoflake --remove-all-unused-imports --recursive --in-place {service_dir}")
-
-            # Run black to format code
             run_command(f"black {service_dir}")
 
             logger.info("Code formatting completed")
@@ -198,6 +199,49 @@ class RestGenerator:
         except Exception as e:
             logger.warning(f"Code formatting failed: {e}")
             # Don't fail the entire process for formatting issues
+
+    def _fix_syntax_issues(self, service_dir: str) -> None:
+        """Fix common syntax issues in generated code"""
+        import os
+        import re
+
+        for root, dirs, files in os.walk(service_dir):
+            for file in files:
+                if file.endswith('.py') and 'client.py' in file:
+                    file_path = os.path.join(root, file)
+                    self._fix_client_file(file_path)
+
+    def _fix_client_file(self, file_path: str) -> None:
+        """Fix syntax issues in a client file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            original_content = content
+
+            # Fix parameter syntax: Filter.TechnicalDocumentId: -> filter_technical_document_id:
+            content = re.sub(r'([A-Z][a-zA-Z]*\.[A-Za-z]+):\s*([A-Za-z\[\]]+)',
+                           lambda m: f"{self._to_snake_case(m.group(1).replace('.', '_'))}: {m.group(2)}", content)
+
+            # Fix case inconsistencies: VM -> Vm
+            # Match VM followed by punctuation, whitespace, or another uppercase letter
+            content = re.sub(r'([A-Z][a-zA-Z]*)VM([,\s\)\]\(:A-Z])', r'\1Vm\2', content)
+
+            # Fix malformed parameter lines
+            content = re.sub(r'([a-zA-Z_]+):\s*([A-Za-z\[\]]+)\s*=\s*([A-Za-z\[\]_\.]*),\s*([a-zA-Z_]+):',
+                           r'\1: \2 = \3,\n        \4:', content)
+
+            if content != original_content:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+        except Exception as e:
+            logger.warning(f"Failed to fix syntax in {file_path}: {e}")
+
+    def _to_snake_case(self, name: str) -> str:
+        """Convert CamelCase to snake_case"""
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     def _generate_tests_structure(
         self,
@@ -214,10 +258,12 @@ class RestGenerator:
             return
 
         try:
+            facade_class_name = self._generate_facade_class_name(module_name)
             tests_generator = TestsGenerator(
                 tests_root,
                 package_root,
                 include_asserts=self.generate_asserts,
+                facade_class_name=facade_class_name,
             )
             tests_generator.generate(
                 module_name,
