@@ -190,8 +190,20 @@ class RestGenerator:
             # Fix syntax issues first
             self._fix_syntax_issues(service_dir)
 
-            # Then format with black (skip autoflake to avoid hanging)
+            # Remove unused imports with autoflake
             from utils.shell import run_command
+            logger.info("Removing unused imports with autoflake...")
+            run_command(
+                f"autoflake --in-place --remove-all-unused-imports "
+                f"--remove-unused-variables --recursive {service_dir}"
+            )
+
+            # Sort imports with isort
+            logger.info("Sorting imports with isort...")
+            run_command(f"isort {service_dir}")
+
+            # Format code with black
+            logger.info("Formatting code with black...")
             run_command(f"black {service_dir}")
 
             logger.info("Code formatting completed")
