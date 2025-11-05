@@ -36,14 +36,15 @@ def to_pascal_case(name: str) -> str:
         'approval_process_template' -> 'ApprovalProcessTemplate'
         'user-management' -> 'UserManagement'
         'http_validation_error' -> 'HttpValidationError'
+        'labor_costs_catalog' -> 'LaborCostsCatalog'
     """
     # Replace non-alphanumeric characters with spaces
     name = re.sub(r'[^a-zA-Z0-9]', ' ', name)
 
-    # Split by spaces and capitalize each word
+    # Split by spaces and capitalize each word (using title() to preserve internal capitals)
     words = name.split()
 
-    return ''.join(word.capitalize() for word in words if word)
+    return ''.join(word[0].upper() + word[1:] for word in words if word)
 
 
 def normalize_directory_name(name: str) -> str:
