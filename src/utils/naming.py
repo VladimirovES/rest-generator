@@ -37,14 +37,26 @@ def to_pascal_case(name: str) -> str:
         'user-management' -> 'UserManagement'
         'http_validation_error' -> 'HttpValidationError'
         'labor_costs_catalog' -> 'LaborCostsCatalog'
+        'catalog_nomenclatures' -> 'CatalogNomenclatures'
+        'technical_support_requests' -> 'TechnicalSupportRequests'
+        'ReclamationActs' -> 'ReclamationActs' (already PascalCase, preserve it)
+        'WarrantyTypes' -> 'WarrantyTypes' (already PascalCase, preserve it)
     """
+    # Check if string already appears to be in PascalCase (starts with uppercase, has mixed case, no separators)
+    # If so, return as-is to preserve the original casing from swagger
+    has_separators = bool(re.search(r'[^a-zA-Z0-9]', name))
+    if (not has_separators and name and name[0].isupper() and
+        any(c.islower() for c in name) and any(c.isupper() for c in name[1:])):
+        return name
+
     # Replace non-alphanumeric characters with spaces
     name = re.sub(r'[^a-zA-Z0-9]', ' ', name)
 
-    # Split by spaces and capitalize each word (using title() to preserve internal capitals)
+    # Split by spaces and capitalize each word properly
     words = name.split()
 
-    return ''.join(word[0].upper() + word[1:] for word in words if word)
+    # Capitalize first letter and lowercase the rest for each word
+    return ''.join(word.capitalize() for word in words if word)
 
 
 def normalize_directory_name(name: str) -> str:

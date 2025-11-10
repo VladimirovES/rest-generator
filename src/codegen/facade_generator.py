@@ -2,6 +2,7 @@ import os
 from typing import Dict, List
 from dataclasses import dataclass
 from jinja2 import Environment, FileSystemLoader
+from utils.naming import to_snake_case
 
 
 @dataclass
@@ -49,7 +50,7 @@ class FacadeGenerator:
         imports_data = []
 
         for module_name, class_name in sorted(file_to_class.items()):
-            attribute_name = self._class_name_to_camel_case(class_name)
+            attribute_name = self._class_name_to_snake_case(class_name)
 
             imports_data.append(
                 ClientImport(
@@ -61,8 +62,12 @@ class FacadeGenerator:
 
         return imports_data
 
-    def _class_name_to_camel_case(self, class_name: str) -> str:
-        """Convert PascalCase class name to camelCase attribute name"""
-        if not class_name:
-            return class_name
-        return class_name[0].lower() + class_name[1:]
+    def _class_name_to_snake_case(self, class_name: str) -> str:
+        """Convert PascalCase class name to snake_case attribute name
+
+        Examples:
+            'MaintenanceProvider' -> 'maintenance_provider'
+            'LaborCostsCatalog' -> 'labor_costs_catalog'
+            'TechnicalSupportRequests' -> 'technical_support_requests'
+        """
+        return to_snake_case(class_name)

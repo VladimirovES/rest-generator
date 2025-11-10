@@ -235,9 +235,8 @@ class RestGenerator:
             content = re.sub(r'([A-Z][a-zA-Z]*\.[A-Za-z]+):\s*([A-Za-z\[\]]+)',
                            lambda m: f"{self._to_snake_case(m.group(1).replace('.', '_'))}: {m.group(2)}", content)
 
-            # Fix case inconsistencies: VM -> Vm
-            # Match VM followed by punctuation, whitespace, or another uppercase letter
-            content = re.sub(r'([A-Z][a-zA-Z]*)VM([,\s\)\]\(:A-Z])', r'\1Vm\2', content)
+            # NOTE: VM/Vm case transformations removed to match swagger exactly
+            # Keep model names exactly as they appear in swagger specification
 
             # Fix malformed parameter lines
             content = re.sub(r'([a-zA-Z_]+):\s*([A-Za-z\[\]]+)\s*=\s*([A-Za-z\[\]_\.]*),\s*([a-zA-Z_]+):',

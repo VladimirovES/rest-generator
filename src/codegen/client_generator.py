@@ -3,6 +3,7 @@ import re
 from typing import Dict, List
 from jinja2 import Environment, FileSystemLoader
 from codegen.data_models import Endpoint, MethodContext
+from utils.naming import to_pascal_case
 
 
 class ClientGenerator:
@@ -55,10 +56,14 @@ class ClientGenerator:
         return grouped
 
     def _tag_to_class_name(self, tag: str) -> str:
-        """Convert tag to class name: 'user-management' -> 'UserManagement'"""
-        normalized_tag = tag.replace("-", "_")
-        parts = re.split(r"[\s_]+", normalized_tag)
-        return "".join(word.capitalize() for word in parts if word)
+        """Convert tag to class name: 'user-management' -> 'UserManagement'
+
+        Uses to_pascal_case for proper CamelCase conversion.
+        Examples:
+            'catalog_nomenclatures' -> 'CatalogNomenclatures'
+            'technical-support-requests' -> 'TechnicalSupportRequests'
+        """
+        return to_pascal_case(tag)
 
     def _generate_client_file(
         self,
