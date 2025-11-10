@@ -1,6 +1,7 @@
 import os
 from typing import List, Dict
 from jinja2 import Environment, FileSystemLoader
+from utils.naming import to_snake_case
 
 
 def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, str]]:
@@ -13,7 +14,14 @@ def find_services_with_facade(base_dir: str = "http_clients") -> List[Dict[str, 
                 api_class = (
                     "".join(word.capitalize() for word in item.split("_")) + "Facade"
                 )
-                services_info.append({"service_name": item, "api_class": api_class})
+                # Directory name is already in snake_case, use it as-is for attribute
+                # This ensures consistency with the module naming
+                attribute_name = item
+                services_info.append({
+                    "service_name": item,
+                    "api_class": api_class,
+                    "attribute_name": attribute_name
+                })
     return services_info
 
 

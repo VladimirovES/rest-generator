@@ -11,5 +11,5 @@ from .{{ srv.service_name }}.facade import {{ srv.api_class }}
 class ApiFacade:
     def __init__(self, client: ApiClient):
         {% for srv in services %}
-        self.{{ srv.service_name }} = {{ srv.api_class }}(client)
+        self.{{ srv.attribute_name }} = {{ srv.api_class }}(client)
         {% endfor %}

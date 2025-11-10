@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from utils.shell import run_command
 from swagger.swagger_models import SwaggerSpec
+from utils.naming import to_snake_case
 
 
 class SwaggerLoader:
@@ -27,10 +28,26 @@ class SwaggerLoader:
             raise ValueError(f"Invalid swagger format: {e}")
 
     def get_module_name(self) -> str:
-        """Имя папки/модуля - только из title"""
+        """Имя папки/модуля - только из title с правильным snake_case
+
+        Examples:
+            "Atom Aftersales OnlineBookingService WebApi" -> "atom_aftersales_online_booking_service_webapi"
+            "Atom Aftersales WarrantyService WebApi" -> "atom_aftersales_warranty_service_webapi"
+        """
         title = self.swagger_spec.info.title
-        normalized = re.sub(r"[^a-zA-Z0-9]+", "_", title.strip())
-        return normalized.lower().strip("_")
+
+        # Split by spaces and special characters to get words/components
+        words = re.split(r"[^a-zA-Z0-9]+", title.strip())
+
+        # Convert each word to snake_case (handles CamelCase words)
+        snake_parts = []
+        for word in words:
+            if word:  # Skip empty strings
+                snake_word = to_snake_case(word)
+                snake_parts.append(snake_word)
+
+        # Join all parts with underscore
+        return "_".join(snake_parts)
 
     def get_service_path(self) -> str:
         """Путь сервиса для URL - из servers"""
