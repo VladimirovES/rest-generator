@@ -1,32 +1,70 @@
 import allure
 from functools import wraps
-from utils.logger import logger
 
 
 class Reporter:
     @staticmethod
-    def title(title_text):
+    def case(title: str, c_id: int | None = None):
+        """
+        Декоратор, который:
+        - выставляет красивое название теста (allure.title)
+        - при переданном case_id добавляет привязку к кейсу в TestOps (allure.id)
+
+        Пример:
+            @Reporter.case("Получение обращения Email", case_id=123)
+            def test_retrieve_appeal_create_from_email(...): ...
+        """
+
         def decorator(func):
-            @allure.title(title_text)
+            if c_id is not None:
+                func_with_meta = allure.id(int(c_id))(func)
+            else:
+                func_with_meta = func
+
+            func_with_meta = allure.title(title)(func_with_meta)
+
             @wraps(func)
             def wrapper(*args, **kwargs):
-                logger.info("=" * 100)
-                logger.info(f"StartTest: '{title_text}'")
-                logger.info("-" * 100)
-
+                print("=" * 100)
+                print(f"TEST NAME: '{title}'" + (f" (id={c_id})" if c_id is not None else ""))
+                print("-" * 100)
                 try:
-                    result = func(*args, **kwargs)
-                    logger.info("-" * 100)
-                    logger.info(f"Test Passed: '{title_text}'")
-                    logger.info("=" * 100)
+                    result = func_with_meta(*args, **kwargs)
+                    print("-" * 100)
+                    print(f"Test Passed: '{title}'")
+                    print("=" * 100)
                     return result
                 except Exception as e:
-                    logger.info("-" * 100)
-                    logger.error(f"Test Failed: '{title_text}' - {str(e)}")
-                    logger.info("=" * 100)
+                    print("-" * 100)
+                    print(f"Test Failed: '{title}' - {str(e)}")
+                    print("=" * 100)
                     raise
 
             return wrapper
+
+        return decorator
+
+
+    @staticmethod
+    def hierarchy(epic, feature, story, suite=None):
+        """
+        Декоратор для создания иерархии тестов, объединяя все декораторы
+
+        :param epic: Название Epic
+        :param feature: Название Feature
+        :param story: Название Story
+        :param suite: Название Suite (опционально, по умолчанию пустая строка)
+        """
+
+        def decorator(func_or_class):
+            func_or_class = allure.epic(epic)(func_or_class)
+            func_or_class = allure.feature(feature)(func_or_class)
+            func_or_class = allure.story(story)(func_or_class)
+
+            suite_value = suite if suite is not None else ''
+            func_or_class = allure.suite(suite_value)(func_or_class)
+
+            return func_or_class
 
         return decorator
 
@@ -36,7 +74,7 @@ class Reporter:
 
         class AllureStepContext:
             def __enter__(self):
-                logger.info(f"{name}")
+                print(f"{name}")
                 allure_step.__enter__()
                 return self
 
