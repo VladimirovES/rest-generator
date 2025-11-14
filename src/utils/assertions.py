@@ -1,9 +1,20 @@
 import re
-from typing import Any, Union, Optional, Callable, List
-from datetime import datetime, date, timedelta
+from typing import Any, Union, Optional, Callable, List, TypeVar, Generic, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    try:
+        from typing import Protocol
+    except ImportError:
+        from typing_extensions import Protocol
+from datetime import datetime, date, timedelta, timezone
 
 from utils.report_utils import Reporter
-from utils.logger import logger
+
+# Moscow timezone (UTC+3)
+MOSCOW_TZ = timezone(timedelta(hours=3))
+
 
 class Expect:
 
@@ -399,6 +410,37 @@ class Expect:
             self.contains_item(item)
         return self
 
+    def not_contains_item(self, item: Any) -> "Expect":
+        """Проверяет отсутствие элемента в коллекции."""
+        try:
+            if item in self.actual:
+                if hasattr(self.actual, "__len__"):
+                    length = len(self.actual)
+                    if length <= 10:
+                        hint = f"Найденные элементы: {list(self.actual)}"
+                    else:
+                        hint = f"Всего {length} элементов в коллекции"
+                else:
+                    hint = "Элемент найден в коллекции"
+
+                return self._check(
+                    False,
+                    f"НЕ содержит {self._format_value(item)}",
+                    f"коллекция без элемента {self._format_value(item)}",
+                    hint,
+                )
+
+            return self._check(
+                True, f"НЕ содержит элемент {self._format_value(item)}"
+            )
+
+        except TypeError:
+            self._fail(
+                " итерируемым",
+                "итерируемый объект",
+                f"получен тип {type(self.actual).__name__}",
+            )
+
     def is_sorted_asc(self, key_func: Optional[Callable] = None) -> "Expect":
         """Проверяет сортировку по возрастанию."""
         return self._check_sorting(ascending=True, key_func=key_func)
@@ -577,9 +619,10 @@ class Expect:
         )
 
     def is_around_now(self, minutes: int = 1) -> "Expect":
-        """Проверяет, что время близко к текущему (±минуты)."""
+        """Проверяет, что время близко к текущему (±минуты) в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        now = datetime.now()
+        # Используем UTC+3 (московское время)
+        now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         delta = timedelta(minutes=minutes)
         min_time = now - delta
         max_time = now + delta
@@ -595,15 +638,16 @@ class Expect:
 
         return self._check(
             is_around,
-            f" около текущего времени (±{minutes} мин)",
+            f" около текущего времени UTC+3 (±{minutes} мин)",
             f"время между {min_time.strftime('%H:%M:%S')} и {max_time.strftime('%H:%M:%S')}",
             f"Разница с текущим временем: {diff_str}",
         )
 
     def is_close_to_now(self, seconds: int = 60) -> "Expect":
-        """Проверяет, что время близко к текущему (±секунды)."""
+        """Проверяет, что время близко к текущему (±секунды) в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        now = datetime.now()
+        # Используем UTC+3 (московское время)
+        now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         delta = timedelta(seconds=seconds)
         min_time = now - delta
         max_time = now + delta
@@ -614,15 +658,16 @@ class Expect:
 
         return self._check(
             is_close,
-            f" близко к текущему времени (±{seconds} сек)",
+            f" близко к текущему времени UTC+3 (±{seconds} сек)",
             f"время между {min_time.strftime('%H:%M:%S')} и {max_time.strftime('%H:%M:%S')}",
             f"Разница: {time_diff:.1f} секунд",
         )
 
     def is_just_created(self, tolerance_minutes: int = 2) -> "Expect":
-        """Проверяет, что объект только что создан."""
+        """Проверяет, что объект только что создан в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        now = datetime.now()
+        # Используем UTC+3 (московское время)
+        now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         min_time = now - timedelta(minutes=tolerance_minutes)
 
         is_just_created = min_time <= actual_dt <= now
@@ -635,7 +680,7 @@ class Expect:
 
         return self._check(
             is_just_created,
-            f" только что создано (в пределах {tolerance_minutes} мин)",
+            f" только что создано в UTC+3 (в пределах {tolerance_minutes} мин)",
             f"время создания между {min_time.strftime('%H:%M:%S')} и {now.strftime('%H:%M:%S')}",
             additional,
         )
@@ -689,7 +734,6 @@ class SoftExpect(Expect):
             expectation, actual_formatted, expected_formatted, additional_info
         )
         self._collector._add_failure(message)
-        Reporter.message(f"Soft assertion failed:\n{message}")
         raise SoftAssertionError(message)
 
     def _success(self, message: str):
@@ -709,6 +753,40 @@ class SoftExpect(Expect):
             return self
 
 
+T = TypeVar('T')
+
+class SoftWrapper(Generic[T]):
+    """Обертка для объектов, позволяющая перехватывать исключения в методах."""
+
+    def __init__(self, wrapped_obj: T, soft_assertions):
+        self._wrapped_obj = wrapped_obj
+        self._soft_assertions = soft_assertions
+
+    def __getattr__(self, name: str) -> Any:
+        attr = getattr(self._wrapped_obj, name)
+
+        if callable(attr):
+            def soft_method(*args, **kwargs) -> Union['SoftWrapper[T]', Any]:
+                try:
+                    result = attr(*args, **kwargs)
+                    # Если метод возвращает self (chainable), возвращаем SoftWrapper
+                    if result is self._wrapped_obj:
+                        return self
+                    # Иначе возвращаем оригинальный результат
+                    return result
+                except AssertionError as exc:
+                    details = str(exc) if str(exc) else repr(exc)
+                    self._soft_assertions._add_failure(details)
+                    # Возвращаем self для возможности цепочки вызовов даже при ошибке
+                    return self
+
+            soft_method.__name__ = getattr(attr, '__name__', name)
+            soft_method.__doc__ = getattr(attr, '__doc__', None)
+            return soft_method
+        else:
+            return attr
+
+
 class SoftAssertions:
     def __init__(self, *, log_success: bool = False, step_name: Optional[str] = None):
         self._failures: List[str] = []
@@ -716,27 +794,55 @@ class SoftAssertions:
         self._step_name = step_name
         self._step_context = None
 
-    def expect(self, actual: Any, name: str) -> SoftExpect:
-        return SoftExpect(actual, name, self)
 
-    def __call__(self, actual: Any, name: str) -> SoftExpect:
-        return self.expect(actual, name)
 
     def _add_failure(self, message: str):
         self._failures.append(message)
 
-    def check(self, func: Callable, *args, description: Optional[str] = None, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except AssertionError as exc:
-            details = str(exc) if str(exc) else repr(exc)
-            if description:
-                combined = f"{description}:\n{details}" if details else description
-            else:
-                combined = details
-            self._add_failure(combined)
-            Reporter.message(f"Soft assertion failed:\n{combined}")
-        return self
+
+    def wrap(self, obj: T) -> SoftWrapper[T]:
+        """
+        Оборачивает объект для soft assertions, позволяя вызывать методы напрямую.
+
+        Args:
+            obj: Объект для оборачивания
+
+        Returns:
+            SoftWrapper: Обернутый объект
+
+        Example:
+            with soft_assertions() as softly:
+                softly.wrap(self.status).assert_text_eql(expected=row_data.status)
+                softly.wrap(self.date_create).check_datetime_in_interval()
+        """
+        return SoftWrapper(obj, self)
+
+    def __call__(self, obj_or_value: T, name: Optional[str] = None) -> Union[SoftWrapper[T], SoftExpect]:
+        """
+        Универсальный метод для soft assertions.
+
+        Args:
+            obj_or_value: UI компонент или значение для проверки
+            name: Описательное имя (только для expect)
+
+        Returns:
+            SoftWrapper или SoftExpect
+
+        Example:
+            # UI компоненты
+            softly(self.button).click()
+            softly(self.field).assert_text_eql(expected="value")
+
+            # Expect проверки
+            softly(response.status, 'Статус код').is_equal(200)
+            softly(user.age, 'Возраст').is_greater_than(18)
+        """
+        if name is not None:
+            # Если передано имя, создаем SoftExpect для expect-стиля
+            return SoftExpect(obj_or_value, name, self)
+        else:
+            # Если имя не передано, создаем SoftWrapper для UI компонентов
+            return SoftWrapper(obj_or_value, self)
 
     def assert_all(self):
         if not self._failures:
@@ -784,6 +890,27 @@ class SoftAssertions:
 
 
 def soft_assertions(step_name: Optional[str] = None, *, log_success: bool = False) -> SoftAssertions:
-    """Convenience factory for using soft assertions as a context manager."""
+    """
+    Создает контекст для выполнения множественных проверок с накоплением ошибок.
 
+    Args:
+        step_name: Название шага для отчетности
+        log_success: Логировать ли успешные проверки
+
+    Returns:
+        SoftAssertions: Контекст для soft assertions
+
+    Example:
+        # UI компоненты
+        with soft_assertions('Проверка данных формы') as softly:
+            softly(self.name_field).assert_text_eql(expected="John")
+            softly(self.age_field).assert_text_eql(expected="25")
+            softly(self.submit_button).check_visibility()
+
+        # API ответы с expect
+        with soft_assertions('Проверка API ответа') as softly:
+            softly(response.status_code, 'Статус код').is_equal(200)
+            softly(response.json()['name'], 'Имя пользователя').is_equal("John")
+            softly(response.json()['items'], 'Список элементов').is_not_empty()
+    """
     return SoftAssertions(log_success=log_success, step_name=step_name)
