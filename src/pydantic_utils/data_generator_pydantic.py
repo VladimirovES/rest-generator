@@ -1,4 +1,3 @@
-from typing import Any
 from faker import Faker
 from pydantic_utils.pydantic_config import BaseConfigModel
 
@@ -47,7 +46,6 @@ class GenData:
                 TypeUtils.extract_base_type(annotation) if is_optional else annotation
             )
 
-            # Генерируем значение с учетом имени поля (если включена умная генерация)
             field_name_for_gen = field_name if self.use_smart_generation else None
             self.data[field_name] = ValueGenerator.generate(
                 real_type, field_name_for_gen, self.current_depth, self.max_depth

@@ -1,10 +1,9 @@
 """Validation utilities for testing and assertion."""
 
 import re
-from typing import Any, Union, Optional, Callable, List, Dict, Set
-from datetime import datetime, date, timedelta
+from typing import Any, Union, List, Dict, Set
+from datetime import datetime, date
 
-from utils.report_utils import Reporter
 from utils.logger import logger
 
 
@@ -69,7 +68,9 @@ class Validator:
 
         if isinstance(value, str):
             if len(value) > max_length:
-                return f"'{value[:max_length]}...' (truncated, full length: {len(value)})"
+                return (
+                    f"'{value[:max_length]}...' (truncated, full length: {len(value)})"
+                )
             return f"'{value}'"
 
         elif isinstance(value, bool):
@@ -126,7 +127,7 @@ class Validator:
         if len(str(value)) <= max_length and len(value) <= 5:
             return str(value)
 
-        keys = list(value.keys())[:self.MAX_DICT_KEYS_PREVIEW]
+        keys = list(value.keys())[: self.MAX_DICT_KEYS_PREVIEW]
         key_preview = ", ".join(f"'{k}'" for k in keys)
         return f"{{dict with {len(value)} keys: {key_preview}, ...}}"
 
@@ -173,24 +174,18 @@ class Validator:
         self._assert(
             self.actual == expected,
             f"Expected {self._name} to equal {self._format_value(expected)}",
-            expected
+            expected,
         )
         return self
 
     def to_be_none(self) -> "Validator":
         """Assert that actual value is None."""
-        self._assert(
-            self.actual is None,
-            f"Expected {self._name} to be None"
-        )
+        self._assert(self.actual is None, f"Expected {self._name} to be None")
         return self
 
     def to_be_empty(self) -> "Validator":
         """Assert that actual value is empty (for strings, lists, dicts, etc.)."""
-        self._assert(
-            len(self.actual) == 0,
-            f"Expected {self._name} to be empty"
-        )
+        self._assert(len(self.actual) == 0, f"Expected {self._name} to be empty")
         return self
 
     def to_contain(self, expected: Any) -> "Validator":
@@ -198,7 +193,7 @@ class Validator:
         self._assert(
             expected in self.actual,
             f"Expected {self._name} to contain {self._format_value(expected)}",
-            expected
+            expected,
         )
         return self
 
@@ -207,7 +202,7 @@ class Validator:
         self._assert(
             self.actual > expected,
             f"Expected {self._name} to be greater than {expected}",
-            expected
+            expected,
         )
         return self
 
@@ -216,7 +211,7 @@ class Validator:
         self._assert(
             self.actual < expected,
             f"Expected {self._name} to be less than {expected}",
-            expected
+            expected,
         )
         return self
 
@@ -224,7 +219,7 @@ class Validator:
         """Assert that actual string matches regex pattern."""
         self._assert(
             re.search(pattern, str(self.actual)) is not None,
-            f"Expected {self._name} to match pattern '{pattern}'"
+            f"Expected {self._name} to match pattern '{pattern}'",
         )
         return self
 
@@ -232,7 +227,7 @@ class Validator:
         """Assert that actual value is instance of expected type."""
         self._assert(
             isinstance(self.actual, expected_type),
-            f"Expected {self._name} to be instance of {expected_type.__name__}"
+            f"Expected {self._name} to be instance of {expected_type.__name__}",
         )
         return self
 
@@ -242,7 +237,7 @@ class Validator:
         self._assert(
             actual_length == expected_length,
             f"Expected {self._name} to have length {expected_length}, got {actual_length}",
-            expected_length
+            expected_length,
         )
         return self
 
@@ -264,5 +259,4 @@ def expect(actual: Any, name: str = "value") -> Validator:
     return Validator(actual, name)
 
 
-# Backward compatibility aliases
 Expect = Validator

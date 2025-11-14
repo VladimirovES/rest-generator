@@ -1,5 +1,4 @@
 import os
-import re
 from typing import Dict, List
 from jinja2 import Environment, FileSystemLoader
 from codegen.data_models import Endpoint, MethodContext
@@ -15,7 +14,6 @@ class ClientGenerator:
         self.template = self._load_template(template_name)
 
     def _load_template(self, template_name: str):
-        # Get absolute path to templates directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
         templates_dir = os.path.join(current_dir, "templates")
         templates_path = os.path.abspath(templates_dir)

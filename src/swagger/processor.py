@@ -48,7 +48,7 @@ class SwaggerProcessor:
         return endpoints
 
     def _create_endpoint(
-            self, path: str, http_method: str, operation: SwaggerOperation, tag: str
+        self, path: str, http_method: str, operation: SwaggerOperation, tag: str
     ) -> Endpoint:
 
         expected_status, return_type = self._extract_response_info(operation.responses)
@@ -75,7 +75,6 @@ class SwaggerProcessor:
             for name in self.swagger_spec.components.schemas.keys()
         ]
 
-    # Private helper methods
     @staticmethod
     def _remove_underscores(name: str) -> str:
         segments = name.split("_")
@@ -85,7 +84,6 @@ class SwaggerProcessor:
             if not seg:
                 continue
             if re.match(r"^[A-Z][a-zA-Z0-9]*$", seg):
-                # Convert VM to Vm to match datamodel-codegen output
                 if seg == "VM":
                     cleaned_segments.append("Vm")
                 else:
@@ -107,13 +105,15 @@ class SwaggerProcessor:
         return None
 
     def _extract_response_info(
-            self, responses: Dict[str, SwaggerResponse]
+        self, responses: Dict[str, SwaggerResponse]
     ) -> tuple[str, str]:
         expected_status = "OK"
         return_type = "Any"
 
         for status_code, response_obj in responses.items():
-            if any(status_code.startswith(prefix) for prefix in SUCCESS_STATUS_PREFIXES):
+            if any(
+                status_code.startswith(prefix) for prefix in SUCCESS_STATUS_PREFIXES
+            ):
                 expected_status = self._get_http_status_enum(status_code)
 
                 resp_content = response_obj.content
@@ -149,7 +149,7 @@ class SwaggerProcessor:
         return OPENAPI_TYPE_MAPPING.get(openapi_type, "Any")
 
     def _extract_parameters(
-            self, parameters: List[SwaggerParameter], location: str
+        self, parameters: List[SwaggerParameter], location: str
     ) -> List[Parameter]:
         result = []
         for param in parameters:
@@ -164,7 +164,7 @@ class SwaggerProcessor:
         return result
 
     def _determine_method_name(
-            self, http_method: str, path: str, operation: SwaggerOperation
+        self, http_method: str, path: str, operation: SwaggerOperation
     ) -> str:
         if operation.summary:
             raw_name = operation.summary

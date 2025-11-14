@@ -4,7 +4,6 @@ from typing import (
     List,
     Dict,
     Set,
-    ForwardRef,
     Annotated,
     get_args,
     get_origin,

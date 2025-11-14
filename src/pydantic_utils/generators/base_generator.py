@@ -12,10 +12,10 @@ class BaseGenerator(ABC):
 
     @abstractmethod
     def generate(
-            self,
-            field_type: Any,
-            field_name: Optional[str] = None,
-            current_depth: int = 0,
-            max_depth: int = 5,
+        self,
+        field_type: Any,
+        field_name: Optional[str] = None,
+        current_depth: int = 0,
+        max_depth: int = 5,
     ) -> Any:
         pass

@@ -16,7 +16,6 @@ class FacadeGenerator:
     def __init__(self, facade_class_name: str, template_name: str):
         self.facade_class_name = facade_class_name
         self.template_name = template_name
-        # Get absolute path to templates directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
         templates_dir = os.path.join(current_dir, "templates")
         templates_path = os.path.abspath(templates_dir)

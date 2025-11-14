@@ -28,7 +28,7 @@ class RequestHandler:
         self.session.mount("https://", adapter)
 
     def _add_authorization_header(
-            self, headers: Optional[Dict[str, str]] = None
+        self, headers: Optional[Dict[str, str]] = None
     ) -> Dict[str, str]:
         headers = headers or {}
         if self.auth_token:
@@ -52,14 +52,14 @@ class RequestHandler:
         return str(payload)
 
     def prepare_request(
-            self,
-            method: str,
-            url: str,
-            payload: Optional[Any] = None,
-            headers: Optional[Dict] = None,
-            params: Optional[Dict] = None,
-            files: Optional[Dict] = None,
-            data: Optional[Union[bytes, str]] = None,
+        self,
+        method: str,
+        url: str,
+        payload: Optional[Any] = None,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        files: Optional[Dict] = None,
+        data: Optional[Union[bytes, str]] = None,
     ) -> requests.PreparedRequest:
         headers = self._add_authorization_header(headers)
 
@@ -86,13 +86,13 @@ class RequestHandler:
             data=data,
             headers=headers,
             params=params,
-            json=payload
+            json=payload,
         )
 
         return request.prepare()
 
     def send_request(
-            self, prepared_request: requests.PreparedRequest, path: str
+        self, prepared_request: requests.PreparedRequest, path: str
     ) -> requests.Response:
         response = self.session.send(prepared_request)
 
@@ -102,11 +102,11 @@ class RequestHandler:
         return response
 
     def process_response(
-            self, response: requests.Response
+        self, response: requests.Response
     ) -> Union[Dict, List, bytes, str, None]:
         try:
             if "application/pdf" in response.headers.get(
-                    "Content-Type", ""
+                "Content-Type", ""
             ) or "bytes" in response.headers.get("Accept-Ranges", ""):
                 return response.content
             if response.status_code == HTTPStatus.NO_CONTENT:

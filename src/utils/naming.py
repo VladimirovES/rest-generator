@@ -11,20 +11,15 @@ def to_snake_case(name: str) -> str:
         'HTTPValidationError' -> 'http_validation_error'
         'userID' -> 'user_id'
     """
-    # Handle consecutive capitals (e.g., HTTPError -> HTTP_Error)
-    name = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', name)
+    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
 
-    # Handle normal CamelCase (e.g., CamelCase -> Camel_Case)
-    name = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
 
-    # Replace any remaining non-alphanumeric characters with underscores
-    name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+    name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
 
-    # Remove multiple consecutive underscores
-    name = re.sub(r'_+', '_', name)
+    name = re.sub(r"_+", "_", name)
 
-    # Remove leading/trailing underscores
-    name = name.strip('_')
+    name = name.strip("_")
 
     return name.lower()
 
@@ -42,21 +37,21 @@ def to_pascal_case(name: str) -> str:
         'ReclamationActs' -> 'ReclamationActs' (already PascalCase, preserve it)
         'WarrantyTypes' -> 'WarrantyTypes' (already PascalCase, preserve it)
     """
-    # Check if string already appears to be in PascalCase (starts with uppercase, has mixed case, no separators)
-    # If so, return as-is to preserve the original casing from swagger
-    has_separators = bool(re.search(r'[^a-zA-Z0-9]', name))
-    if (not has_separators and name and name[0].isupper() and
-        any(c.islower() for c in name) and any(c.isupper() for c in name[1:])):
+    has_separators = bool(re.search(r"[^a-zA-Z0-9]", name))
+    if (
+        not has_separators
+        and name
+        and name[0].isupper()
+        and any(c.islower() for c in name)
+        and any(c.isupper() for c in name[1:])
+    ):
         return name
 
-    # Replace non-alphanumeric characters with spaces
-    name = re.sub(r'[^a-zA-Z0-9]', ' ', name)
+    name = re.sub(r"[^a-zA-Z0-9]", " ", name)
 
-    # Split by spaces and capitalize each word properly
     words = name.split()
 
-    # Capitalize first letter and lowercase the rest for each word
-    return ''.join(word.capitalize() for word in words if word)
+    return "".join(word.capitalize() for word in words if word)
 
 
 def normalize_directory_name(name: str) -> str:
@@ -67,10 +62,8 @@ def normalize_directory_name(name: str) -> str:
         'access-setting' -> 'access_setting'
         'element-documents' -> 'element_documents'
     """
-    # Replace hyphens with underscores
-    name = name.replace('-', '_')
+    name = name.replace("-", "_")
 
-    # Convert to snake_case for consistency
     return to_snake_case(name)
 
 

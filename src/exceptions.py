@@ -15,17 +15,14 @@ class RestGeneratorError(Exception):
 
 class SwaggerProcessingError(RestGeneratorError):
     """Error during Swagger/OpenAPI specification processing."""
-    pass
 
 
 class CodeGenerationError(RestGeneratorError):
     """Error during code generation."""
-    pass
 
 
 class ApiClientError(RestGeneratorError):
     """Base exception for API client errors."""
-    pass
 
 
 class HttpError(ApiClientError):
@@ -36,7 +33,7 @@ class HttpError(ApiClientError):
         message: str,
         status_code: Optional[int] = None,
         response_data: Optional[Any] = None,
-        url: Optional[str] = None
+        url: Optional[str] = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
@@ -60,7 +57,7 @@ class UnexpectedStatusCodeError(HttpError):
         expected: HTTPStatus,
         actual: int,
         url: str,
-        response_data: Optional[Any] = None
+        response_data: Optional[Any] = None,
     ) -> None:
         message = f"Expected status {expected.value}, got {actual}"
         super().__init__(message, actual, response_data, url)
@@ -70,14 +67,11 @@ class UnexpectedStatusCodeError(HttpError):
 
 class RequestPreparationError(ApiClientError):
     """Error during request preparation."""
-    pass
 
 
 class ResponseProcessingError(ApiClientError):
     """Error during response processing."""
-    pass
 
 
 class ConfigurationError(RestGeneratorError):
     """Configuration related error."""
-    pass

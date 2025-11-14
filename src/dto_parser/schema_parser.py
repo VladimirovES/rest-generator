@@ -1,7 +1,6 @@
 """OpenAPI schema parser for extracting model definitions."""
 
 from typing import Dict, Any, List, Set, Optional
-import json
 import re
 from dataclasses import dataclass
 
@@ -12,6 +11,7 @@ from utils.naming import to_pascal_case
 @dataclass
 class ModelField:
     """Represents a field in a Pydantic model."""
+
     name: str
     type_str: str
     required: bool = True
@@ -23,6 +23,7 @@ class ModelField:
 @dataclass
 class ModelDefinition:
     """Represents a complete model definition."""
+
     name: str
     fields: List[ModelField]
     description: Optional[str] = None
@@ -42,7 +43,7 @@ class SchemaParser:
         self.used_model_names: Set[str] = set()
         self.type_resolver.set_ref_name_transform(self._get_or_create_model_name)
         self.parsed_models: Dict[str, ModelDefinition] = {}
-        self.endpoint_models: Dict[str, Set[str]] = {}  # endpoint -> model names
+        self.endpoint_models: Dict[str, Set[str]] = {}
 
     def parse_all_schemas(self) -> Dict[str, ModelDefinition]:
         """Parse all schema definitions from the OpenAPI spec."""
@@ -60,7 +61,9 @@ class SchemaParser:
         endpoint_key = f"{method.upper()}:{path}"
 
         if endpoint_key not in self.endpoint_models:
-            self.endpoint_models[endpoint_key] = self._extract_endpoint_models(path, method)
+            self.endpoint_models[endpoint_key] = self._extract_endpoint_models(
+                path, method
+            )
 
         return self.endpoint_models[endpoint_key]
 
@@ -68,7 +71,6 @@ class SchemaParser:
         """Extract all models referenced by a specific endpoint."""
         models = set()
 
-        # Get the operation from the spec
         paths = self.spec.get("paths", {})
         path_item = paths.get(path, {})
         operation = path_item.get(method.lower(), {})
@@ -76,29 +78,28 @@ class SchemaParser:
         if not operation:
             return models
 
-        # Check parameters
         parameters = operation.get("parameters", [])
         for param in parameters:
             if "schema" in param:
                 models.update(self._extract_models_from_schema(param["schema"]))
 
-        # Check request body
         request_body = operation.get("requestBody", {})
         if request_body:
             content = request_body.get("content", {})
             for media_type, media_content in content.items():
                 if "schema" in media_content:
                     models.update(
-                        self._extract_models_from_schema(media_content["schema"]))
+                        self._extract_models_from_schema(media_content["schema"])
+                    )
 
-        # Check responses
         responses = operation.get("responses", {})
         for status_code, response in responses.items():
             content = response.get("content", {})
             for media_type, media_content in content.items():
                 if "schema" in media_content:
                     models.update(
-                        self._extract_models_from_schema(media_content["schema"]))
+                        self._extract_models_from_schema(media_content["schema"])
+                    )
 
         return models
 
@@ -107,22 +108,16 @@ class SchemaParser:
         if original_name in self.name_mapping:
             return self.name_mapping[original_name]
 
-        # First, handle special patterns
         cleaned = original_name
 
-        # Replace common separators with spaces
         cleaned = cleaned.replace("_", " ").replace("-", " ").replace(".", " ")
 
-        # Handle CamelCase by adding spaces before capitals
-        cleaned = re.sub(r'([a-z])([A-Z])', r'\1 \2', cleaned)
+        cleaned = re.sub(r"([a-z])([A-Z])", r"\1 \2", cleaned)
 
-        # Handle acronyms (e.g., HTTPValidationError -> HTTP Validation Error)
-        cleaned = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', cleaned)
+        cleaned = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", cleaned)
 
-        # Remove any non-alphanumeric characters and replace with spaces
-        cleaned = re.sub(r'[^a-zA-Z0-9]+', ' ', cleaned)
+        cleaned = re.sub(r"[^a-zA-Z0-9]+", " ", cleaned)
 
-        # Remove extra spaces and convert to PascalCase
         sanitized = to_pascal_case(cleaned)
 
         if not sanitized:
@@ -173,12 +168,13 @@ class SchemaParser:
 
         return models
 
-    def _parse_schema_definition(self, original_name: str, schema: Dict[str, Any]) -> ModelDefinition:
+    def _parse_schema_definition(
+        self, original_name: str, schema: Dict[str, Any]
+    ) -> ModelDefinition:
         """Parse a single schema definition into a ModelDefinition."""
 
         model_name = self._get_or_create_model_name(original_name)
 
-        # Handle enums
         if "enum" in schema:
             return ModelDefinition(
                 name=model_name,
@@ -186,36 +182,36 @@ class SchemaParser:
                 description=schema.get("description"),
                 is_enum=True,
                 enum_values=schema["enum"],
-                base_type="Enum" if self._is_string_enum(schema["enum"]) else "IntEnum"
+                base_type="Enum" if self._is_string_enum(schema["enum"]) else "IntEnum",
             )
 
-        # Handle object types
         if schema.get("type") == "object" or "properties" in schema:
             return self._parse_object_schema(schema, model_name)
 
-        # Handle simple types (create type alias)
         type_str = self.type_resolver.resolve_type(schema, model_name)
         return ModelDefinition(
             name=model_name,
             fields=[],
             description=schema.get("description"),
-            base_type=f"TypeAlias = {type_str}"
+            base_type=f"TypeAlias = {type_str}",
         )
 
-    def _parse_object_schema(self, schema: Dict[str, Any], model_name: str) -> ModelDefinition:
+    def _parse_object_schema(
+        self, schema: Dict[str, Any], model_name: str
+    ) -> ModelDefinition:
         """Parse an object schema into a ModelDefinition."""
         properties = schema.get("properties", {})
         required_fields = set(schema.get("required", []))
 
-        # Clear imports and collect during field parsing
         self.type_resolver.imports.clear()
 
         fields = []
         for field_name, field_schema in properties.items():
-            field = self._parse_field(field_name, field_schema, field_name in required_fields)
+            field = self._parse_field(
+                field_name, field_schema, field_name in required_fields
+            )
             fields.append(field)
 
-        # Capture imports for this model
         model_imports = self.type_resolver.imports.copy()
         self.type_resolver.imports.clear()
 
@@ -224,14 +220,15 @@ class SchemaParser:
             fields=fields,
             description=schema.get("description"),
             base_type="BaseConfigModel",
-            imports=model_imports
+            imports=model_imports,
         )
 
-    def _parse_field(self, name: str, schema: Dict[str, Any], required: bool) -> ModelField:
+    def _parse_field(
+        self, name: str, schema: Dict[str, Any], required: bool
+    ) -> ModelField:
         """Parse a field schema into a ModelField."""
         type_str = self.type_resolver.resolve_type(schema, name)
 
-        # Handle default values
         default = None
         if not required:
             if "default" in schema:
@@ -248,7 +245,6 @@ class SchemaParser:
                     type_str = f"Optional[{type_str}]"
                     self.type_resolver.imports.add("Optional")
 
-        # Extract constraints
         constraints = {}
         for constraint in ["minLength", "maxLength", "minimum", "maximum", "pattern"]:
             if constraint in schema:
@@ -260,7 +256,7 @@ class SchemaParser:
             required=required,
             default=default,
             description=schema.get("description"),
-            constraints=constraints if constraints else None
+            constraints=constraints if constraints else None,
         )
 
     def _is_string_enum(self, values: List[Any]) -> bool:

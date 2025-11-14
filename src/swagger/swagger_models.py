@@ -10,7 +10,7 @@ class SwaggerInfo(BaseModel):
 
 class SwaggerParameter(BaseModel):
     name: str
-    in_: str = Field(alias="in")  # 'in' - зарезервированное слово
+    in_: str = Field(alias="in")
     required: bool = False
     schema_: Optional[Dict[str, Any]] = Field(alias="schema")
 

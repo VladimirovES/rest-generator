@@ -14,7 +14,6 @@ def configure_logging(level: int = logging.INFO) -> logging.Logger:
     """
     logger = logging.getLogger("src")
 
-    # Prevent duplicate handlers
     if logger.handlers:
         return logger
 
@@ -39,6 +38,5 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logging.getLogger("src")
 
 
-# Configure the main logger
 configure_logging()
 logger = get_logger()

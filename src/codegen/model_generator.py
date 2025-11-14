@@ -81,7 +81,7 @@ class ModelGenerator:
         filtered_imports = [imp for imp in imports_list if imp != "RootModel"]
 
         if not filtered_imports:
-            return ""  # Remove entire line if no imports left
+            return ""
 
         return f"{prefix}{', '.join(filtered_imports)}"
 
@@ -139,9 +139,7 @@ class ModelGenerator:
 
     def _add_config_import_if_needed(self, lines: List[str]) -> List[str]:
         """Add BaseConfigModel import if it's missing"""
-        config_import = (
-            "from pydantic_utils.pydantic_config import BaseConfigModel\n"
-        )
+        config_import = "from pydantic_utils.pydantic_config import BaseConfigModel\n"
 
         if any("BaseConfigModel" in line and "import" in line for line in lines):
             return lines
@@ -167,7 +165,6 @@ class ModelGenerator:
     def post_process_code(self, output_dir: str) -> None:
         """Remove unused imports and format code"""
         try:
-            # Remove unused imports with autoflake
             cmd_parts = [
                 "autoflake",
                 "--remove-all-unused-imports",
@@ -177,9 +174,9 @@ class ModelGenerator:
             ]
             run_command(" ".join(cmd_parts))
 
-            # Format code with black
             run_command(f"black '{output_dir}'")
         except Exception as e:
-            # Log warning but don't fail the entire process
             print(f"Warning: Code formatting failed: {e}")
-            print("Generated code may not be formatted, but functionality is preserved.")
+            print(
+                "Generated code may not be formatted, but functionality is preserved."
+            )

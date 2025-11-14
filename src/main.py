@@ -33,8 +33,6 @@ from constants import (
 load_dotenv()
 
 
-
-
 class RestGenerator:
     """Main generator class that orchestrates the REST client generation process.
 
@@ -62,13 +60,10 @@ class RestGenerator:
     def generate(self) -> None:
         """Main generation workflow"""
         try:
-            # Step 1: Download and load swagger
             swagger_spec, module_name, service_path = self._load_swagger()
 
-            # Step 2: Setup directories
             service_dir = self._setup_directories(module_name)
 
-            # Step 3: Generate clients with models
             (
                 file_to_class,
                 module_endpoints,
@@ -97,13 +92,10 @@ class RestGenerator:
                         module_asserts,
                     )
 
-            # Step 5: Post-process code
             self._post_process_code(service_dir)
 
-            # Step 6: Generate facades
             self._generate_facades(module_name, service_dir, file_to_class)
 
-            # Step 7: Copy base modules
             self._copy_base_modules(self.output_dir)
 
             logger.info(
@@ -147,7 +139,6 @@ class RestGenerator:
         except OSError as e:
             raise CodeGenerationError(f"Failed to create directories: {e}") from e
 
-
     def _generate_clients_with_models(
         self, swagger_spec: object, service_dir: str
     ) -> Tuple[dict, dict, dict]:
@@ -161,16 +152,16 @@ class RestGenerator:
             logger.info(f"Found {len(endpoints)} endpoints and {len(imports)} imports")
 
             logger.info("Generating client classes with models...")
-            # Convert swagger_spec to dict for model generator
             import json
-            with open(self.swagger_path, 'r', encoding='utf-8') as f:
+
+            with open(self.swagger_path, "r", encoding="utf-8") as f:
                 swagger_dict = json.load(f)
 
             client_gen = EnhancedClientGenerator(
                 endpoints=endpoints,
                 imports=imports,
                 template_name=CLIENT_TEMPLATE,
-                openapi_spec=swagger_dict
+                openapi_spec=swagger_dict,
             )
             file_to_class = client_gen.generate_clients_with_models(service_dir)
             module_endpoints = client_gen.get_module_endpoints()
@@ -180,29 +171,28 @@ class RestGenerator:
             return file_to_class, module_endpoints, model_definitions
 
         except Exception as e:
-            raise CodeGenerationError(f"Failed to generate clients with models: {e}") from e
+            raise CodeGenerationError(
+                f"Failed to generate clients with models: {e}"
+            ) from e
 
     def _post_process_code(self, service_dir: str) -> None:
         """Run code formatting and cleanup"""
         try:
             logger.info("Running code formatting and fixes...")
 
-            # Fix syntax issues first
             self._fix_syntax_issues(service_dir)
 
-            # Remove unused imports with autoflake
             from utils.shell import run_command
+
             logger.info("Removing unused imports with autoflake...")
             run_command(
                 f"autoflake --in-place --remove-all-unused-imports "
                 f"--remove-unused-variables --recursive {service_dir}"
             )
 
-            # Sort imports with isort
             logger.info("Sorting imports with isort...")
             run_command(f"isort {service_dir}")
 
-            # Format code with black
             logger.info("Formatting code with black...")
             run_command(f"black {service_dir}")
 
@@ -210,40 +200,39 @@ class RestGenerator:
 
         except Exception as e:
             logger.warning(f"Code formatting failed: {e}")
-            # Don't fail the entire process for formatting issues
 
     def _fix_syntax_issues(self, service_dir: str) -> None:
         """Fix common syntax issues in generated code"""
         import os
-        import re
 
         for root, dirs, files in os.walk(service_dir):
             for file in files:
-                if file.endswith('.py') and 'client.py' in file:
+                if file.endswith(".py") and "client.py" in file:
                     file_path = os.path.join(root, file)
                     self._fix_client_file(file_path)
 
     def _fix_client_file(self, file_path: str) -> None:
         """Fix syntax issues in a client file"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             original_content = content
 
-            # Fix parameter syntax: Filter.TechnicalDocumentId: -> filter_technical_document_id:
-            content = re.sub(r'([A-Z][a-zA-Z]*\.[A-Za-z]+):\s*([A-Za-z\[\]]+)',
-                           lambda m: f"{self._to_snake_case(m.group(1).replace('.', '_'))}: {m.group(2)}", content)
+            content = re.sub(
+                r"([A-Z][a-zA-Z]*\.[A-Za-z]+):\s*([A-Za-z\[\]]+)",
+                lambda m: f"{self._to_snake_case(m.group(1).replace('.', '_'))}: {m.group(2)}",
+                content,
+            )
 
-            # NOTE: VM/Vm case transformations removed to match swagger exactly
-            # Keep model names exactly as they appear in swagger specification
-
-            # Fix malformed parameter lines
-            content = re.sub(r'([a-zA-Z_]+):\s*([A-Za-z\[\]]+)\s*=\s*([A-Za-z\[\]_\.]*),\s*([a-zA-Z_]+):',
-                           r'\1: \2 = \3,\n        \4:', content)
+            content = re.sub(
+                r"([a-zA-Z_]+):\s*([A-Za-z\[\]]+)\s*=\s*([A-Za-z\[\]_\.]*),\s*([a-zA-Z_]+):",
+                r"\1: \2 = \3,\n        \4:",
+                content,
+            )
 
             if content != original_content:
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 
         except Exception as e:
@@ -251,8 +240,8 @@ class RestGenerator:
 
     def _to_snake_case(self, name: str) -> str:
         """Convert CamelCase to snake_case"""
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
     def _generate_tests_structure(
         self,
@@ -299,9 +288,7 @@ class RestGenerator:
         """Create assertion helpers for endpoints."""
         try:
             asserts_generator = AssertsGenerator(tests_root, model_definitions)
-            module_asserts = asserts_generator.generate(
-                module_name, module_endpoints
-            )
+            module_asserts = asserts_generator.generate(module_name, module_endpoints)
             if module_asserts:
                 logger.info(
                     "Generated assertion helpers for service '%s'",
@@ -312,10 +299,11 @@ class RestGenerator:
             logger.warning(f"Failed to generate assertion helpers: {e}")
             return []
 
-    def _generate_facades(self, module_name: str, service_dir: str, file_to_class: dict) -> None:
+    def _generate_facades(
+        self, module_name: str, service_dir: str, file_to_class: dict
+    ) -> None:
         """Generate local and global facades"""
         try:
-            # Generate local facade
             logger.info("Generating local facade...")
             facade_class_name = self._generate_facade_class_name(module_name)
             facade_gen = FacadeGenerator(
@@ -324,7 +312,6 @@ class RestGenerator:
             facade_gen.generate_facade(file_to_class, service_dir, FACADE_FILENAME)
             logger.info("Local facade generated")
 
-            # Generate global facade
             logger.info("Generating global facade...")
             app_facade_path = os.path.join(self.output_dir, APP_FACADE_FILENAME)
             generate_app_facade(
@@ -345,17 +332,14 @@ class RestGenerator:
 
             logger.info("Copying base modules...")
 
-            # Get the source directory (where this script is located)
             src_dir = os.path.dirname(os.path.abspath(__file__))
 
-            # Copy rest_client module
             rest_client_src = os.path.join(src_dir, "rest_client")
             rest_client_dst = os.path.join(output_dir, "rest_client")
             if os.path.exists(rest_client_dst):
                 shutil.rmtree(rest_client_dst)
             shutil.copytree(rest_client_src, rest_client_dst)
 
-            # Copy exceptions module
             exceptions_src = os.path.join(src_dir, "exceptions.py")
             exceptions_dst = os.path.join(output_dir, "exceptions.py")
             shutil.copy2(exceptions_src, exceptions_dst)
@@ -364,7 +348,6 @@ class RestGenerator:
 
         except Exception as e:
             logger.warning(f"Failed to copy base modules: {e}")
-            # Don't fail the entire process for this
 
     @staticmethod
     def _generate_facade_class_name(module_name: str) -> str:
@@ -392,14 +375,12 @@ class RestGenerator:
 
 @click.command()
 @click.option(
-    "--swagger-url",
-    required=True,
-    help="URL to download the Swagger JSON from"
+    "--swagger-url", required=True, help="URL to download the Swagger JSON from"
 )
 @click.option(
     "--output-dir",
     default=DEFAULT_OUTPUT_DIR,
-    help=f"Output directory for generated files (default: {DEFAULT_OUTPUT_DIR})"
+    help=f"Output directory for generated files (default: {DEFAULT_OUTPUT_DIR})",
 )
 @click.option(
     "--tests",

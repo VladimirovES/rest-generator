@@ -14,14 +14,11 @@ class Parameter:
     @property
     def python_name(self) -> str:
         """Convert parameter name to valid Python identifier"""
-        # First convert CamelCase to snake_case
-        python_name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', self.name)
-        python_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', python_name)
-        # Then replace dots with underscores
-        python_name = python_name.replace('.', '_')
-        # Convert to lowercase and clean up multiple underscores
+        python_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.name)
+        python_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", python_name)
+        python_name = python_name.replace(".", "_")
         python_name = python_name.lower()
-        python_name = re.sub('_+', '_', python_name)
+        python_name = re.sub("_+", "_", python_name)
         return python_name
 
 
@@ -38,7 +35,6 @@ class Endpoint:
     return_type: str = "Any"
     description: str = ""
     summary: str = ""
-
 
     @property
     def sanitized_path(self) -> str:
@@ -88,7 +84,11 @@ class ParameterBuilder:
         return [f"{p.python_name}: {p.type}" for p in self.endpoint.path_params]
 
     def _build_required_query_params(self) -> List[str]:
-        return [f"{p.python_name}: {p.type}" for p in self.endpoint.query_params if p.required]
+        return [
+            f"{p.python_name}: {p.type}"
+            for p in self.endpoint.query_params
+            if p.required
+        ]
 
     def _build_optional_query_params(self) -> List[str]:
         return [
@@ -103,6 +103,7 @@ class ParameterBuilder:
             and self.endpoint.payload_type
             and self.endpoint.payload_type != "Any"
         )
+
 
 class HttpCallBuilder:
     """Builds HTTP call parts"""
@@ -122,11 +123,10 @@ class HttpCallBuilder:
         """Generate path variable assignment"""
         full_path = f"{self.service_path}{self.endpoint.path}"
 
-        # Replace path parameters with their python_name equivalents
-        # e.g., {Id} -> {id}, {UserId} -> {user_id}
         for param in self.endpoint.path_params:
-            # Replace {OriginalName} with {python_name}
-            full_path = full_path.replace(f"{{{param.name}}}", f"{{{param.python_name}}}")
+            full_path = full_path.replace(
+                f"{{{param.name}}}", f"{{{param.python_name}}}"
+            )
 
         return full_path
 
@@ -141,7 +141,7 @@ class HttpCallBuilder:
             headers=headers,
             expected_status=expected_status
         )"""
-    
+
     def _build_post_call(self) -> str:
         """POST/PUT/PATCH/DELETE request"""
         method = self.endpoint.http_method.lower()
@@ -196,9 +196,7 @@ class ReturnStatementBuilder:
         if self.endpoint.return_type == "Any":
             return "return r_json"
 
-        condition = (
-            f"if expected_status == HTTPStatus.{self.endpoint.expected_status} else r_json"
-        )
+        condition = f"if expected_status == HTTPStatus.{self.endpoint.expected_status} else r_json"
 
         if self.endpoint.return_type.startswith("List["):
             return self._build_list_return(condition)
@@ -218,7 +216,6 @@ class ReturnStatementBuilder:
 
     def _build_primitive_return(self, condition: str) -> str:
         """Primitive type return"""
-        # response.json() already returns correct Python types, no conversion needed
         return f"return r_json {condition}"
 
     def _build_model_return(self, condition: str) -> str:
@@ -242,12 +239,14 @@ class MethodContext:
     required_params: List[str]
     optional_params: List[str]
     path_assignment: str
-    method:str
+    method: str
     http_call: str
     return_statement: str
 
     @classmethod
-    def from_endpoint(cls, endpoint: Endpoint, service_path: str = "") -> "MethodContext":
+    def from_endpoint(
+        cls, endpoint: Endpoint, service_path: str = ""
+    ) -> "MethodContext":
         """Convert Endpoint to MethodContext"""
 
         param_builder = ParameterBuilder(endpoint)
@@ -259,7 +258,7 @@ class MethodContext:
             description=endpoint.description,
             summary=endpoint.summary,
             path=endpoint.path,
-            method = endpoint.http_method.upper(),
+            method=endpoint.http_method.upper(),
             return_type=endpoint.return_type,
             expected_status=endpoint.expected_status,
             required_params=param_builder.build_required_params(),

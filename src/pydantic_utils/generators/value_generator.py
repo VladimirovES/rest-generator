@@ -37,12 +37,10 @@ class ValueGenerator:
     ) -> Any:
         """Генерирует значение для заданного типа"""
 
-        # Обработка Optional
         if TypeUtils.is_optional(field_type):
             real_type = TypeUtils.extract_base_type(field_type)
             return cls.generate(real_type, field_name, current_depth, max_depth)
 
-        # Обработка Union (не Optional)
         if TypeUtils.is_union(field_type):
             args = get_args(field_type)
             chosen = random.choice(args)

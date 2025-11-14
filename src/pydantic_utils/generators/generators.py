@@ -4,21 +4,16 @@ from typing import (
     Any,
     List,
     Dict,
-    Union,
     Set,
-    Type,
-    Callable,
     Optional,
     get_args,
     get_origin,
     ForwardRef,
-    Annotated,
 )
 from uuid import UUID, uuid4
 
 
 from faker import Faker
-from pydantic import Field, RootModel
 
 from .base_generator import BaseGenerator
 from .type_utils import TypeUtils
@@ -36,11 +31,9 @@ class SmartFieldGenerator(BaseGenerator):
 
         field_lower = field_name.lower()
 
-        # Проверяем точное совпадение
         if field_lower in SmartFieldConfig.EXACT_MAPPINGS:
             return True
 
-        # Проверяем паттерны
         return any(
             pattern in field_lower for pattern in SmartFieldConfig.PATTERN_MAPPINGS
         )
@@ -57,11 +50,9 @@ class SmartFieldGenerator(BaseGenerator):
 
         field_lower = field_name.lower()
 
-        # Точное совпадение приоритетнее
         if field_lower in SmartFieldConfig.EXACT_MAPPINGS:
             return SmartFieldConfig.EXACT_MAPPINGS[field_lower]()
 
-        # Ищем по паттернам
         for pattern, generator in SmartFieldConfig.PATTERN_MAPPINGS.items():
             if pattern in field_lower:
                 return generator()
@@ -250,7 +241,6 @@ class AnnotatedGenerator(BaseGenerator):
                 if hasattr(meta, "max_length") and meta.max_length is not None:
                     max_len = max(1, int(meta.max_length))
 
-                # Если есть constraints, проверяем их
                 if hasattr(meta, "constraints") and meta.constraints:
                     constraints = meta.constraints
                     if (
@@ -266,7 +256,6 @@ class AnnotatedGenerator(BaseGenerator):
             except (ValueError, TypeError, AttributeError):
                 continue
 
-        # Проверяем корректность диапазона
         if min_len > max_len:
             min_len = 1
             max_len = 20

@@ -5,7 +5,7 @@ from http import HTTPStatus
 
 from rest_client.base_url import ConfigUrl
 from rest_client.processor import RequestHandler
-from exceptions import UnexpectedStatusCodeError, ApiClientError
+from exceptions import UnexpectedStatusCodeError
 
 
 class ApiClient:
@@ -19,7 +19,9 @@ class ApiClient:
         base_url: Optional base URL for API endpoints
     """
 
-    def __init__(self, auth_token: Optional[str] = None, base_url: Optional[str] = None) -> None:
+    def __init__(
+        self, auth_token: Optional[str] = None, base_url: Optional[str] = None
+    ) -> None:
         self.base_url = base_url or ConfigUrl.get_base_url()
         self.auth_token = auth_token
         self._request_handler = RequestHandler(auth_token)
@@ -69,7 +71,7 @@ class ApiClient:
                 expected=expected_status,
                 actual=response.status_code,
                 url=url,
-                response_data=self._request_handler.process_response(response)
+                response_data=self._request_handler.process_response(response),
             )
 
         return self._request_handler.process_response(response)

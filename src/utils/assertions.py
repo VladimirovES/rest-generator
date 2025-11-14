@@ -2,17 +2,16 @@ import re
 from typing import Any, Union, Optional, Callable, List, TypeVar, Generic, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Protocol
+    pass
 else:
     try:
-        from typing import Protocol
+        pass
     except ImportError:
-        from typing_extensions import Protocol
+        pass
 from datetime import datetime, date, timedelta, timezone
 
 from utils.report_utils import Reporter
 
-# Moscow timezone (UTC+3)
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 
@@ -196,10 +195,6 @@ class Expect:
 
         return self
 
-    # ===============================
-    # БАЗОВЫЕ ПРОВЕРКИ
-    # ===============================
-
     def is_equal(self, expected: Any) -> "Expect":
         """Проверяет точное равенство значений."""
         return self._check(
@@ -275,10 +270,6 @@ class Expect:
             f"значение <= {expected}",
         )
 
-    # ===============================
-    # СТРОКОВЫЕ ПРОВЕРКИ
-    # ===============================
-
     def contains(self, substring: str) -> "Expect":
         """Проверяет, что строка содержит подстроку."""
         if not isinstance(self.actual, str):
@@ -289,7 +280,6 @@ class Expect:
             )
 
         if substring not in self.actual:
-            # Показываем контекст вокруг похожих частей
             preview = (
                 self.actual[:100] + "..." if len(self.actual) > 100 else self.actual
             )
@@ -317,10 +307,6 @@ class Expect:
             f"должно соответствовать паттерну '{pattern}'",
             f"строка, соответствующая паттерну '{pattern}'",
         )
-
-    # ===============================
-    # ПРОВЕРКИ КОЛЛЕКЦИЙ
-    # ===============================
 
     def has_length(self, expected_length: int) -> "Expect":
         """Проверяет длину коллекции."""
@@ -361,19 +347,14 @@ class Expect:
         """Проверяет, что коллекция не пуста."""
         try:
             actual_length = len(self.actual)
-            return self._check(
-                actual_length > 0, "не  пустым", "непустая коллекция"
-            )
+            return self._check(actual_length > 0, "не  пустым", "непустая коллекция")
         except TypeError:
-            self._fail(
-                " коллекцией", "коллекция", "объект не поддерживает len()"
-            )
+            self._fail(" коллекцией", "коллекция", "объект не поддерживает len()")
 
     def contains_item(self, item: Any) -> "Expect":
         """Проверяет наличие элемента в коллекции."""
         try:
             if item not in self.actual:
-                # Формируем подсказку о доступных элементах
                 if hasattr(self.actual, "__len__"):
                     length = len(self.actual)
                     if length == 0:
@@ -430,9 +411,7 @@ class Expect:
                     hint,
                 )
 
-            return self._check(
-                True, f"НЕ содержит элемент {self._format_value(item)}"
-            )
+            return self._check(True, f"НЕ содержит элемент {self._format_value(item)}")
 
         except TypeError:
             self._fail(
@@ -468,7 +447,6 @@ class Expect:
                 f" отсортировано {direction} (тривиально для 0-1 элементов)",
             )
 
-        # Получаем значения для сравнения
         if key_func:
             try:
                 values = [key_func(item) for item in items]
@@ -483,7 +461,6 @@ class Expect:
             values = items
             key_info = ""
 
-        # Проверяем сортировку
         direction = "по возрастанию" if ascending else "по убыванию"
 
         for i in range(len(values) - 1):
@@ -497,7 +474,6 @@ class Expect:
             is_sorted = True
 
         if not is_sorted:
-            # Находим место нарушения
             comparison = ">" if ascending else "<"
             val1 = self._format_value(values[i], 50)
             val2 = self._format_value(values[i + 1], 50)
@@ -513,9 +489,7 @@ class Expect:
                 f"Нарушение на позиции {i}: {val1} {comparison} {val2}. Значения: {preview}",
             )
 
-        return self._check(
-            is_sorted, f" отсортировано {direction}{key_info}"
-        )
+        return self._check(is_sorted, f" отсортировано {direction}{key_info}")
 
     def is_sorted_by_field(self, field_name: str, asc: bool = True) -> "Expect":
         """Проверяет сортировку по полю объекта."""
@@ -528,7 +502,7 @@ class Expect:
             else:
                 raise AttributeError(f"Поле '{field_name}' не найдено")
 
-        direction = "по возрастанию" if asc else "по убыванию"
+        "по возрастанию" if asc else "по убыванию"
 
         try:
             return self._check_sorting(ascending=asc, key_func=get_field_value)
@@ -539,10 +513,6 @@ class Expect:
                 str(e),
             )
 
-    # ===============================
-    # ПРОВЕРКИ ДАТЫ И ВРЕМЕНИ
-    # ===============================
-
     def _parse_date(self, value: Any) -> datetime:
         """Парсит дату из различных форматов."""
         if isinstance(value, datetime):
@@ -550,7 +520,6 @@ class Expect:
         elif isinstance(value, date):
             return datetime.combine(value, datetime.min.time())
         elif isinstance(value, str):
-            # Пробуем различные форматы
             formats = [
                 "%Y-%m-%d",
                 "%Y-%m-%d %H:%M:%S",
@@ -569,7 +538,6 @@ class Expect:
                 except ValueError:
                     continue
 
-            # Если ни один формат не подошел
             self._fail(
                 " валидной датой",
                 "дата в одном из поддерживаемых форматов",
@@ -621,7 +589,6 @@ class Expect:
     def is_around_now(self, minutes: int = 1) -> "Expect":
         """Проверяет, что время близко к текущему (±минуты) в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        # Используем UTC+3 (московское время)
         now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         delta = timedelta(minutes=minutes)
         min_time = now - delta
@@ -646,7 +613,6 @@ class Expect:
     def is_close_to_now(self, seconds: int = 60) -> "Expect":
         """Проверяет, что время близко к текущему (±секунды) в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        # Используем UTC+3 (московское время)
         now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         delta = timedelta(seconds=seconds)
         min_time = now - delta
@@ -666,7 +632,6 @@ class Expect:
     def is_just_created(self, tolerance_minutes: int = 2) -> "Expect":
         """Проверяет, что объект только что создан в UTC+3."""
         actual_dt = self._parse_date(self.actual)
-        # Используем UTC+3 (московское время)
         now = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
         min_time = now - timedelta(minutes=tolerance_minutes)
 
@@ -684,11 +649,6 @@ class Expect:
             f"время создания между {min_time.strftime('%H:%M:%S')} и {now.strftime('%H:%M:%S')}",
             additional,
         )
-
-
-# ===============================
-# API
-# ===============================
 
 
 def expect(actual: Any, name: str) -> Expect:
@@ -753,7 +713,8 @@ class SoftExpect(Expect):
             return self
 
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class SoftWrapper(Generic[T]):
     """Обертка для объектов, позволяющая перехватывать исключения в методах."""
@@ -766,22 +727,20 @@ class SoftWrapper(Generic[T]):
         attr = getattr(self._wrapped_obj, name)
 
         if callable(attr):
-            def soft_method(*args, **kwargs) -> Union['SoftWrapper[T]', Any]:
+
+            def soft_method(*args, **kwargs) -> Union["SoftWrapper[T]", Any]:
                 try:
                     result = attr(*args, **kwargs)
-                    # Если метод возвращает self (chainable), возвращаем SoftWrapper
                     if result is self._wrapped_obj:
                         return self
-                    # Иначе возвращаем оригинальный результат
                     return result
                 except AssertionError as exc:
                     details = str(exc) if str(exc) else repr(exc)
                     self._soft_assertions._add_failure(details)
-                    # Возвращаем self для возможности цепочки вызовов даже при ошибке
                     return self
 
-            soft_method.__name__ = getattr(attr, '__name__', name)
-            soft_method.__doc__ = getattr(attr, '__doc__', None)
+            soft_method.__name__ = getattr(attr, "__name__", name)
+            soft_method.__doc__ = getattr(attr, "__doc__", None)
             return soft_method
         else:
             return attr
@@ -794,11 +753,8 @@ class SoftAssertions:
         self._step_name = step_name
         self._step_context = None
 
-
-
     def _add_failure(self, message: str):
         self._failures.append(message)
-
 
     def wrap(self, obj: T) -> SoftWrapper[T]:
         """
@@ -817,7 +773,9 @@ class SoftAssertions:
         """
         return SoftWrapper(obj, self)
 
-    def __call__(self, obj_or_value: T, name: Optional[str] = None) -> Union[SoftWrapper[T], SoftExpect]:
+    def __call__(
+        self, obj_or_value: T, name: Optional[str] = None
+    ) -> Union[SoftWrapper[T], SoftExpect]:
         """
         Универсальный метод для soft assertions.
 
@@ -829,19 +787,15 @@ class SoftAssertions:
             SoftWrapper или SoftExpect
 
         Example:
-            # UI компоненты
             softly(self.button).click()
             softly(self.field).assert_text_eql(expected="value")
 
-            # Expect проверки
             softly(response.status, 'Статус код').is_equal(200)
             softly(user.age, 'Возраст').is_greater_than(18)
         """
         if name is not None:
-            # Если передано имя, создаем SoftExpect для expect-стиля
             return SoftExpect(obj_or_value, name, self)
         else:
-            # Если имя не передано, создаем SoftWrapper для UI компонентов
             return SoftWrapper(obj_or_value, self)
 
     def assert_all(self):
@@ -857,7 +811,6 @@ class SoftAssertions:
 
     def __enter__(self) -> "SoftAssertions":
         if self._step_name:
-            # Use Reporter.step which does not auto-log to console
             self._step_context = Reporter.step(self._step_name)
             self._step_context.__enter__()
         return self
@@ -868,7 +821,7 @@ class SoftAssertions:
         if exc_type is None:
             try:
                 self.assert_all()
-            except Exception as e:  # noqa: B902
+            except Exception as e:
                 new_exc = e
 
         final_exc_type = exc_type
@@ -889,7 +842,9 @@ class SoftAssertions:
         return False
 
 
-def soft_assertions(step_name: Optional[str] = None, *, log_success: bool = False) -> SoftAssertions:
+def soft_assertions(
+    step_name: Optional[str] = None, *, log_success: bool = False
+) -> SoftAssertions:
     """
     Создает контекст для выполнения множественных проверок с накоплением ошибок.
 
@@ -901,13 +856,11 @@ def soft_assertions(step_name: Optional[str] = None, *, log_success: bool = Fals
         SoftAssertions: Контекст для soft assertions
 
     Example:
-        # UI компоненты
         with soft_assertions('Проверка данных формы') as softly:
             softly(self.name_field).assert_text_eql(expected="John")
             softly(self.age_field).assert_text_eql(expected="25")
             softly(self.submit_button).check_visibility()
 
-        # API ответы с expect
         with soft_assertions('Проверка API ответа') as softly:
             softly(response.status_code, 'Статус код').is_equal(200)
             softly(response.json()['name'], 'Имя пользователя').is_equal("John")

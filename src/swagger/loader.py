@@ -36,17 +36,14 @@ class SwaggerLoader:
         """
         title = self.swagger_spec.info.title
 
-        # Split by spaces and special characters to get words/components
         words = re.split(r"[^a-zA-Z0-9]+", title.strip())
 
-        # Convert each word to snake_case (handles CamelCase words)
         snake_parts = []
         for word in words:
-            if word:  # Skip empty strings
+            if word:
                 snake_word = to_snake_case(word)
                 snake_parts.append(snake_word)
 
-        # Join all parts with underscore
         return "_".join(snake_parts)
 
     def get_service_path(self) -> str:
@@ -60,11 +57,9 @@ class SwaggerLoader:
         destination = Path(self.file_path)
         parsed = urlparse(url)
 
-        # Handle file:// URLs (or plain local paths) without invoking curl
         if parsed.scheme in {"", "file"}:
             source_path = Path(parsed.path or url)
 
-            # If curl would overwrite the same file, skip copying
             if source_path.resolve() == destination.resolve():
                 return
 
@@ -72,7 +67,6 @@ class SwaggerLoader:
             shutil.copyfile(source_path, destination)
             return
 
-        # Fallback to curl for remote URLs
         destination.parent.mkdir(parents=True, exist_ok=True)
         swagger_cmd = f"curl -L {url!r} -o {str(destination)!r}"
         run_command(swagger_cmd)

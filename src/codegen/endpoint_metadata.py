@@ -28,7 +28,6 @@ def build_endpoint_info(endpoints: List[Endpoint]) -> List[EndpointInfo]:
         base_name = to_snake_case(endpoint.name) or "endpoint"
         method_name = base_name
 
-        # Ensure method names are unique within the module
         if method_name in seen_names:
             suffix = 2
             while f"{base_name}_{suffix}" in seen_names:

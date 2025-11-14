@@ -26,7 +26,10 @@ class Reporter:
             @wraps(func)
             def wrapper(*args, **kwargs):
                 print("=" * 100)
-                print(f"TEST NAME: '{title}'" + (f" (id={c_id})" if c_id is not None else ""))
+                print(
+                    f"TEST NAME: '{title}'"
+                    + (f" (id={c_id})" if c_id is not None else "")
+                )
                 print("-" * 100)
                 try:
                     result = func_with_meta(*args, **kwargs)
@@ -44,7 +47,6 @@ class Reporter:
 
         return decorator
 
-
     @staticmethod
     def hierarchy(epic, feature, story, suite=None):
         """
@@ -61,7 +63,7 @@ class Reporter:
             func_or_class = allure.feature(feature)(func_or_class)
             func_or_class = allure.story(story)(func_or_class)
 
-            suite_value = suite if suite is not None else ''
+            suite_value = suite if suite is not None else ""
             func_or_class = allure.suite(suite_value)(func_or_class)
 
             return func_or_class
@@ -82,7 +84,6 @@ class Reporter:
                 return allure_step.__exit__(exc_type, exc_val, exc_tb)
 
         return AllureStepContext()
-
 
     description = allure.description
     feature = allure.feature
@@ -115,4 +116,3 @@ class Reporter:
             allure.attach(content, name=name, attachment_type=attachment_type)
         else:
             allure.attach(content, name=name)
-
