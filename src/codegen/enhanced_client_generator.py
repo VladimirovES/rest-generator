@@ -58,6 +58,17 @@ class EnhancedClientGenerator(ClientGenerator):
                 )
                 all_model_names.update(models)
 
+                if endpoint.payload_type and endpoint.payload_type != "Any":
+                    all_model_names.add(endpoint.payload_type)
+
+                if endpoint.return_type and endpoint.return_type != "Any":
+                    if endpoint.return_type.startswith("List["):
+                        inner_type = endpoint.return_type[5:-1]
+                        if inner_type not in {"str", "int", "float", "bool", "dict", "Dict"}:
+                            all_model_names.add(inner_type)
+                    elif endpoint.return_type not in {"str", "int", "float", "bool", "dict", "Dict"}:
+                        all_model_names.add(endpoint.return_type)
+
             self.model_generator.finalize_models_package(
                 os.path.join(module_dir, "models"), all_model_names
             )
