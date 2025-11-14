@@ -174,14 +174,22 @@ class HttpCallBuilder:
 
     def _build_query_params_dict(self, include_params: bool = False) -> str:
         """Build query parameters dictionary"""
-        params_dict = "{"
-        for param in self.endpoint.query_params:
-            params_dict += f"'{param.name}': {param.python_name}, "
+        if not self.endpoint.query_params and include_params:
+            return "{**(params or {})}"
+
+        if not self.endpoint.query_params and not include_params:
+            return "{}"
+
+        params_list = [f"'{param.name}': {param.python_name}" for param in self.endpoint.query_params]
 
         if include_params:
-            params_dict += "**(params or {})"
+            params_list.append("**(params or {})")
 
-        params_dict += "}"
+        if len(params_list) <= 2:
+            params_dict = "{" + ", ".join(params_list) + "}"
+        else:
+            params_dict = "{\n                " + ",\n                ".join(params_list) + "\n            }"
+
         return params_dict
 
 
